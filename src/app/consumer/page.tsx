@@ -293,7 +293,7 @@ export default function ConsumerPage() {
             <div className="relative mt-4 overflow-hidden border-y border-white/10">
               <iframe title="SAVIS nearby map" src={mapUrl} className="h-56 w-full border-0" loading="lazy" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#11171c]/70 via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-[#11171c]/85 px-3 py-1.5 text-[0.65rem] font-bold backdrop-blur">● {filtered.length{'}'} nearby results</div>
+              <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-[#11171c]/85 px-3 py-1.5 text-[0.65rem] font-bold backdrop-blur">● {filtered.length} nearby results</div>
             </div>
             <p className="px-4 py-3 text-[0.62rem] text-[#55666E]">Map data © OpenStreetMap contributors. Full interactive provider pins are the next map-layer upgrade.</p>
           </section>
