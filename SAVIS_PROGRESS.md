@@ -101,44 +101,26 @@ Latest commits:
 - Supabase provider metadata + nearby RPC: `4c6873f009c164a548b5a575f1f59a2688915c3b`
 - Provider detail connection: `b73f3c0051cb509cd1c55ee33b162de209729e9e`
 
-## Next steps — do these in order
-1. Open the Provider Hub and test month navigation, date selection, working/off-day toggles, hours and travel radius.
-2. Re-run the current `supabase/schema.sql` in Supabase if the new `provider_availability` table or `jobs.scheduled_for` column are not yet present.
-3. Create/publish at least one real Provider profile with:
-   - role = provider
-   - service_category
-   - latitude
-   - longitude
-   - location_name
-   - hourly_rate
-   - availability
-   - verified
-   - bio
-4. Test Consumer Home:
-   - login
-   - enable location
-   - confirm live provider discovery
-   - change category
-   - search
-   - open provider profile
-   - send booking request
-   - verify booking contains consumer coordinates
-5. After that, build the proper interactive map layer with multiple provider markers.
-6. Then improve provider onboarding/verification so providers can enter and maintain their own service/location data.
-7. Later: M-Pesa, real wallet/escrow, messaging backend, notifications and agent commissions.
+## Next steps — final-dream hardening
+1. Run `supabase/final-dream.sql` after the current schema. It adds the production job lifecycle, quotes, status timeline, conversations/messages, favorites, products/orders, payments ledger, notifications and provider-verification records.
+2. Test the Provider Hub calendar and publish at least one real Provider profile.
+3. Test Consumer Home with browser location permission, category/search/radius, provider profile and booking.
+4. Test the live Leaflet/OpenStreetMap provider map and pin quick cards.
+5. Test the five consumer tabs: Home, For You, Jobs, Messages, Profile.
+6. Connect production M-Pesa credentials/webhook and payment reconciliation before treating payments as live.
+7. Add moderation/storage rules and real product/media publishing before opening Marketplace uploads.
+8. Finish provider verification review/admin controls and agent commission settlement.
+9. Run a production smoke test on the latest Vercel deployment before launch.
 
 ## What is NOT finished yet
-- Real scheduled-date selection in the consumer booking form is still the next booking-flow step; the backend now supports `jobs.scheduled_for`.
-- Real provider data is not populated yet.
-- Multi-provider interactive map markers are not finished.
-- Real routing/navigation is not finished.
-- Provider verification backend is not finished.
-- M-Pesa integration is not finished.
-- Messaging backend is not finished.
-- Wallet/escrow is still prototype/local.
-- Ads and recommendations are still prototype/static.
-- Search is still partly client-side.
-- No full local TypeScript/test run has been performed; the production deployment for merge `581a8d16b165a440969265b79edb14679c42441a` reached READY in Vercel.
+- Real provider seed data is not populated; the 50-profile tier definition has not been supplied.
+- Routing/navigation and true provider live-location tracking are not finished.
+- Provider verification review/admin workflow is not finished.
+- M-Pesa checkout/webhooks/reconciliation require production Daraja credentials and server-side secrets.
+- Wallet/escrow UI still has prototype/local balance behavior; the production payments ledger is now prepared in Supabase.
+- Marketplace media uploads/moderation/publishing are not finished.
+- Search/recommendations/ads still have prototype elements.
+- Full local TypeScript/test run has not been performed in this environment.
 
 ## Continuation instruction
 When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.html`. Use the current GitHub main/active branch and the live Alpha as the source of truth. The old HTML is only a historical design/feature reference.
@@ -154,3 +136,14 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Provider Online/Offline status persists to the provider profile.
 - Products & Shop remains conditional for sellers/physical-goods providers.
 - Social & Portfolio, Messages, and Analytics & Earnings tabs remain part of the hub.
+
+
+## Final-dream foundation added
+- Interactive Leaflet/OpenStreetMap provider map with touch/scroll zoom, live provider pins and quick cards.
+- Consumer five-tab navigation restored and completed: Home, For You, Jobs, Messages, Profile.
+- Consumer messaging now has a Supabase conversation/message client and can create a conversation from a booking.
+- Consumer booking form now supports an optional preferred date/time using `jobs.scheduled_for`.
+- Booking status model expanded toward Requested → Quote Pending → Accepted → En Route → In Progress → Completed, with cancellation/reschedule states.
+- Secure `transition_job(...)` RPC and auditable `job_status_events` added.
+- Production-ready data foundations added for quotes, conversations, messages, favorites, products, product orders, payments ledger, notifications and provider verification.
+- Nearby-provider RPC no longer returns email.
