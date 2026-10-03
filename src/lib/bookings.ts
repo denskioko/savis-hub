@@ -70,14 +70,18 @@ function rowToBooking(row: Record<string, unknown>): Booking {
 }
 
 /** Load all jobs (newest first). Tries Supabase, falls back to local. */
-export async function fetchBookings(): Promise<Booking[]> {
+export async function fetchBookings(scope: "all" | "consumer" = "all"): Promise<Booking[]> {
   try {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let query = supabase.from("jobs").select("*").order("created_at", { ascending: false });
 
+    if (scope === "consumer") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      query = query.eq("consumer_id", user.id);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     if (data) return data.map(rowToBooking);
   } catch {
@@ -203,22 +207,22 @@ export function getAcceptedJobs(): Booking[] {
 
 /** Pull latest from server into local cache */
 export async function syncBookings(): Promise<Booking[]> {
-  const remote = await fetchBookings();
+  const remote = await fetchBookings("all");
   if (remote.length > 0 || fromLocal().length === 0) {
-    // Prefer remote when available
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
       if (!error && data) {
         saveLocal(data.map(rowToBooking));
         return data.map(rowToBooking);
       }
-    } catch {
-      /* keep local */
-    }
+    } catch { /* keep local */ }
   }
   return fromLocal();
+}
+
+export async function syncConsumerBookings(): Promise<Booking[]> {
+  const remote = await fetchBookings("consumer");
+  saveLocal(remote);
+  return remote;
 }
