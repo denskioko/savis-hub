@@ -253,7 +253,7 @@ export default function ConsumerPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 min-w-0 px-4 py-3 text-[#222B31] outline-none rounded-full text-[0.95rem]"
-            placeholder="{t("search.placeholder", lang)}"
+            placeholder={t("search.placeholder", lang)}
           />
           <button
             className="px-5 py-3 rounded-full font-bold text-white text-sm whitespace-nowrap"
@@ -295,7 +295,7 @@ export default function ConsumerPage() {
           <h2 className="font-extrabold text-lg">
             {search || activeCategory !== "all"
               ? `${t("results", lang)} (${filtered.length})`
-              : "{t("near.you", lang)}"}
+              : t("near.you", lang)}
           </h2>
           {(search || activeCategory !== "all") && (
             <button

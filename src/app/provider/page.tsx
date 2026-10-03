@@ -173,7 +173,7 @@ export default function ProviderPage() {
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-full border border-white/10 bg-[rgba(34,43,49,0.72)] mb-5"
         >
           <strong className="text-sm">
-            {available ? "{t("available.jobs", lang)}" : "{t("not.available", lang)}"}
+            {available ? t("available.jobs", lang) : t("not.available", lang)}
           </strong>
           <span
             className={`w-11 h-6 rounded-full relative transition ${
@@ -207,7 +207,7 @@ export default function ProviderPage() {
           ))}
         </div>
 
-        {/* {t("new.requests", lang)} */}
+        {/* New job requests */}
         <div className="p-4 rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] mb-4">
           <h2 className="font-bold mb-3">
             {t("new.requests", lang)}{" "}
@@ -256,7 +256,7 @@ export default function ProviderPage() {
           )}
         </div>
 
-        {/* {t("accept", lang)}ed jobs */}
+        {/* Accepted jobs */}
         {acceptedJobs.length > 0 && (
           <div className="p-4 rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] mb-4">
             <h2 className="font-bold mb-3">{t("active.jobs", lang)}</h2>
@@ -298,7 +298,7 @@ export default function ProviderPage() {
           </div>
         )}
 
-        {/* {t("payouts", lang)} */}
+        {/* Payouts */}
         <div className="p-4 rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] mb-6">
           <h2 className="font-bold mb-3">{t("payouts", lang)}</h2>
           <div className="flex justify-between items-center py-3 border-t border-white/10">
