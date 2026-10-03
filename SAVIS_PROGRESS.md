@@ -149,3 +149,13 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Secure `transition_job(...)` RPC and auditable `job_status_events` added.
 - Production-ready data foundations added for quotes, conversations, messages, favorites, products, product orders, payments ledger, notifications and provider verification.
 - Nearby-provider RPC no longer returns email.
+
+
+## Phase 1 — Dynamic marketplace data
+- Added `supabase/dynamic-marketplace.sql`: provider avatars, verification status, service radius and relational `provider_services`.
+- Nearby-provider discovery is privacy-safe and now returns avatar/verification metadata without email.
+- Added `scripts/seed-providers.mjs` to create/upsert 50 simulated Auth users, distinct profiles, service records, locations, ratings and avatars. It requires `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SAVIS_SEED_PASSWORD`.
+- Added `npm run seed:providers`.
+- Added `compressorjs` and `src/lib/image.ts` for client-side image compression targeting <=200 KB.
+- Consumer Jobs now has an explicit `consumer_id = auth.uid()` query path rather than relying only on client-side filtering.
+- Consumer provider discovery/profile cards now use database-backed avatars; provider detail loads relational services.
