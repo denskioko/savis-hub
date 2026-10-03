@@ -230,3 +230,26 @@ create or replace function public.search_nearby_providers(
   order by distance_km asc limit greatest(1,least(p_limit,100));
 $$;
 grant execute on function public.search_nearby_providers(double precision,double precision,double precision,text,integer) to authenticated;
+
+
+-- Tighten the original prototype job policies now that transition_job exists.
+drop policy if exists "Authenticated users can read jobs" on public.jobs;
+create policy "Job participants and providers can read jobs" on public.jobs for select to authenticated using (
+  consumer_id = auth.uid()
+  or provider_id = auth.uid()::text
+  or (provider_id is null and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('provider','professional')))
+);
+drop policy if exists "Authenticated users can update jobs" on public.jobs;
+create policy "Job participants can update jobs" on public.jobs for update to authenticated using (
+  consumer_id = auth.uid() or provider_id = auth.uid()::text
+) with check (
+  consumer_id = auth.uid() or provider_id = auth.uid()::text
+);
+
+drop policy if exists "job event actor insert" on public.job_status_events;
+create policy "job event participant insert" on public.job_status_events for insert to authenticated with check (
+  actor_id = auth.uid() and exists(
+    select 1 from public.jobs j
+    where j.id = job_id and (j.consumer_id = auth.uid() or j.provider_id = auth.uid()::text)
+  )
+);
