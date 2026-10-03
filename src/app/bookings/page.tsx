@@ -55,6 +55,16 @@ export default function BookingsPage() {
       setLoading(false);
     }
     check();
+
+    function onUpdate() {
+      setBookings(getBookings());
+    }
+    window.addEventListener("savis-bookings-updated", onUpdate);
+    window.addEventListener("storage", onUpdate);
+    return () => {
+      window.removeEventListener("savis-bookings-updated", onUpdate);
+      window.removeEventListener("storage", onUpdate);
+    };
   }, [router]);
 
   if (loading) {

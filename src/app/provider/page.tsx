@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -8,58 +8,32 @@ import Logo from "@/components/Logo";
 import Button from "@/components/Button";
 import LangToggle from "@/components/LangToggle";
 import { t, getLang, setLang, type Lang } from "@/lib/i18n";
+import {
+  getBookings,
+  getOpenRequests,
+  getAcceptedJobs,
+  updateBookingStatus,
+  type Booking,
+} from "@/lib/bookings";
 
 type Profile = {
   full_name: string | null;
   role: string | null;
 };
 
-type JobRequest = {
-  id: number;
-  title: string;
-  area: string;
-  km: number;
-  budget: number;
-  urgency: string;
-  status: "new" | "accepted" | "declined";
+const URGENCY: Record<string, { en: string; sw: string }> = {
+  now: { en: "Right now", sw: "Sasa hivi" },
+  today: { en: "Today", sw: "Leo" },
+  week: { en: "This week", sw: "Wiki hii" },
 };
-
-const SAMPLE_JOBS: JobRequest[] = [
-  {
-    id: 1,
-    title: "Fix leaking kitchen sink",
-    area: "Westlands",
-    km: 1.2,
-    budget: 1500,
-    urgency: "Today",
-    status: "new",
-  },
-  {
-    id: 2,
-    title: "Install water tank on roof",
-    area: "Parklands",
-    km: 2.8,
-    budget: 4200,
-    urgency: "This week",
-    status: "new",
-  },
-  {
-    id: 3,
-    title: "Unblock bathroom drain",
-    area: "Kilimani",
-    km: 1.9,
-    budget: 1200,
-    urgency: "Right now",
-    status: "new",
-  },
-];
 
 export default function ProviderPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [available, setAvailable] = useState(true);
-  const [jobs, setJobs] = useState<JobRequest[]>(SAMPLE_JOBS);
+  const [openJobs, setOpenJobs] = useState<Booking[]>([]);
+  const [activeJobs, setActiveJobs] = useState<Booking[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [lang, setLangState] = useState<Lang>("en");
 
@@ -71,6 +45,11 @@ export default function ProviderPage() {
     setLang(l);
     setLangState(l);
   }
+
+  const refreshJobs = useCallback(() => {
+    setOpenJobs(getOpenRequests());
+    setActiveJobs(getAcceptedJobs());
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -96,10 +75,21 @@ export default function ProviderPage() {
           role: user.user_metadata?.role || "provider",
         }
       );
+      refreshJobs();
       setLoading(false);
     }
     load();
-  }, [router]);
+
+    function onUpdate() {
+      refreshJobs();
+    }
+    window.addEventListener("savis-bookings-updated", onUpdate);
+    window.addEventListener("storage", onUpdate);
+    return () => {
+      window.removeEventListener("savis-bookings-updated", onUpdate);
+      window.removeEventListener("storage", onUpdate);
+    };
+  }, [router, refreshJobs]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -113,31 +103,38 @@ export default function ProviderPage() {
     setTimeout(() => setToast(null), 2200);
   }
 
-  function acceptJob(id: number) {
-    setJobs((prev) =>
-      prev.map((j) => (j.id === id ? { ...j, status: "accepted" } : j))
-    );
-    showToast("Job accepted (sample)");
+  function acceptJob(id: string) {
+    updateBookingStatus(id, "accepted");
+    refreshJobs();
+    showToast(lang === "sw" ? "Kazi imekubaliwa" : "Job accepted");
   }
 
-  function declineJob(id: number) {
-    setJobs((prev) =>
-      prev.map((j) => (j.id === id ? { ...j, status: "declined" } : j))
+  function declineJob(id: string) {
+    updateBookingStatus(id, "declined");
+    refreshJobs();
+    showToast(lang === "sw" ? "Kazi imekataliwa" : "Job declined");
+  }
+
+  function completeJob(id: string) {
+    updateBookingStatus(id, "completed");
+    refreshJobs();
+    showToast(
+      lang === "sw" ? "Kazi imekamilika" : "Job marked complete"
     );
-    showToast("Job declined");
   }
 
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p className="text-[#B9C3C9]">Loading…</p>
+        <p className="text-[#B9C3C9]">{t("loading", lang)}</p>
       </main>
     );
   }
 
   const firstName = profile?.full_name?.split(" ")[0] || "Friend";
-  const newJobs = jobs.filter((j) => j.status === "new");
-  const acceptedJobs = jobs.filter((j) => j.status === "accepted");
+  const completedCount = getBookings().filter(
+    (b) => b.status === "completed"
+  ).length;
 
   return (
     <main className="min-h-screen pb-20">
@@ -166,14 +163,16 @@ export default function ProviderPage() {
           {t("manage.jobs", lang)}
         </p>
 
-        {/* Availability toggle */}
+        {/* Availability */}
         <button
           type="button"
           onClick={() => setAvailable((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3.5 rounded-full border border-white/10 bg-[rgba(34,43,49,0.72)] mb-5"
         >
           <strong className="text-sm">
-            {available ? t("available.jobs", lang) : t("not.available", lang)}
+            {available
+              ? t("available.jobs", lang)
+              : t("not.available", lang)}
           </strong>
           <span
             className={`w-11 h-6 rounded-full relative transition ${
@@ -191,9 +190,18 @@ export default function ProviderPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2.5 mb-5">
           {[
-            { value: "0", label: "KSh this week" },
-            { value: String(acceptedJobs.length), label: "Jobs accepted" },
-            { value: "—", label: "Rating" },
+            {
+              value: String(openJobs.length),
+              label: lang === "sw" ? "Maombi mapya" : "New requests",
+            },
+            {
+              value: String(activeJobs.length),
+              label: t("jobs.accepted", lang),
+            },
+            {
+              value: String(completedCount),
+              label: lang === "sw" ? "Zimekamilika" : "Completed",
+            },
           ].map((s) => (
             <div
               key={s.label}
@@ -207,30 +215,34 @@ export default function ProviderPage() {
           ))}
         </div>
 
-        {/* New job requests */}
+        {/* New requests from consumers */}
         <div className="p-4 rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] mb-4">
           <h2 className="font-bold mb-3">
             {t("new.requests", lang)}{" "}
-            {newJobs.length > 0 && (
-              <span className="text-[#F5C451]">({newJobs.length})</span>
+            {openJobs.length > 0 && (
+              <span className="text-[#F5C451]">({openJobs.length})</span>
             )}
           </h2>
 
-          {newJobs.length === 0 ? (
-            <p className="text-sm text-[#B9C3C9]">
-              No new requests right now. Customers near you will appear here.
-            </p>
+          {openJobs.length === 0 ? (
+            <p className="text-sm text-[#B9C3C9]">{t("no.requests", lang)}</p>
           ) : (
             <div className="space-y-3">
-              {newJobs.map((j) => (
+              {openJobs.map((j) => (
                 <div
                   key={j.id}
                   className="p-3 rounded-2xl bg-black/25 border border-white/8"
                 >
-                  <div className="font-bold text-sm mb-0.5">{j.title}</div>
+                  <div className="font-bold text-sm mb-0.5">
+                    {j.description}
+                  </div>
+                  <div className="text-xs text-[#B9C3C9] mb-1">
+                    {j.providerName} · {j.skill}
+                  </div>
                   <div className="text-xs text-[#B9C3C9] mb-2.5">
-                    {j.area} · {j.km} km · {j.urgency} · KSh{" "}
-                    {j.budget.toLocaleString()}
+                    {j.location} ·{" "}
+                    {URGENCY[j.urgency]?.[lang] || j.urgency} · KSh{" "}
+                    {j.rate.toLocaleString()}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -256,40 +268,47 @@ export default function ProviderPage() {
           )}
         </div>
 
-        {/* Accepted jobs */}
-        {acceptedJobs.length > 0 && (
+        {/* Active jobs */}
+        {activeJobs.length > 0 && (
           <div className="p-4 rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] mb-4">
             <h2 className="font-bold mb-3">{t("active.jobs", lang)}</h2>
             <div className="space-y-3">
-              {acceptedJobs.map((j) => (
+              {activeJobs.map((j) => (
                 <div
                   key={j.id}
                   className="p-3 rounded-2xl bg-black/25 border border-white/8"
                 >
                   <div className="flex justify-between items-start gap-2 mb-1">
-                    <strong className="text-sm">{j.title}</strong>
+                    <strong className="text-sm">{j.description}</strong>
                     <span className="text-[0.7rem] font-bold px-2.5 py-1 rounded-full text-[#34D399] bg-[rgba(52,211,153,0.12)] border border-[rgba(52,211,153,0.4)] shrink-0">
                       {t("in.progress", lang)}
                     </span>
                   </div>
                   <div className="text-xs text-[#B9C3C9] mb-2">
-                    {j.area} · {j.km} km · KSh {j.budget.toLocaleString()}
+                    {j.location} · KSh {j.rate.toLocaleString()}
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => showToast("Customer will be notified (sample)")}
+                      onClick={() => completeJob(j.id)}
                       className="flex-1 py-2 rounded-full text-xs font-bold text-white"
                       style={{
-                        background: "linear-gradient(135deg, #E22227, #C7080C)",
+                        background:
+                          "linear-gradient(135deg, #E22227, #C7080C)",
                       }}
                     >
                       {t("mark.complete", lang)}
                     </button>
                     <button
-                      onClick={() => showToast("Message feature coming soon")}
+                      onClick={() =>
+                        showToast(
+                          lang === "sw"
+                            ? "Ujumbe unakuja baadaye"
+                            : "Messaging coming soon"
+                        )
+                      }
                       className="px-4 py-2 rounded-full text-xs font-bold border border-white/20 text-[#B9C3C9]"
                     >
-                      Message
+                      {t("message", lang)}
                     </button>
                   </div>
                 </div>
@@ -305,7 +324,7 @@ export default function ProviderPage() {
             <div>
               <strong className="text-sm">KSh 0</strong>
               <small className="block text-xs text-[#B9C3C9]">
-                Available to withdraw
+                {t("available.withdraw", lang)}
               </small>
             </div>
             <span className="text-[0.7rem] font-bold px-2.5 py-1 rounded-full text-[#34D399] bg-[rgba(52,211,153,0.12)] border border-[rgba(52,211,153,0.4)]">
@@ -314,9 +333,14 @@ export default function ProviderPage() {
           </div>
           <div className="flex justify-between items-center py-3 border-t border-white/10">
             <div>
-              <strong className="text-sm">KSh 0</strong>
+              <strong className="text-sm">
+                KSh{" "}
+                {activeJobs
+                  .reduce((s, j) => s + j.rate, 0)
+                  .toLocaleString()}
+              </strong>
               <small className="block text-xs text-[#B9C3C9]">
-                Held in escrow until job completion
+                {t("held.escrow", lang)}
               </small>
             </div>
             <span className="text-[0.7rem] font-bold px-2.5 py-1 rounded-full text-[#F5C451] bg-[rgba(245,196,81,0.12)] border border-[rgba(245,196,81,0.4)]">
@@ -326,17 +350,18 @@ export default function ProviderPage() {
         </div>
 
         <p className="text-center text-xs text-[#55666E] mb-4">
-          Prototype · Real job matching and payouts come next
+          {lang === "sw"
+            ? "Prototype · Maombi yanashirikiwa kwenye kivinjari hiki"
+            : "Prototype · Requests are shared in this browser"}
         </p>
 
         <Link href="/">
           <Button variant="outline" full>
-            Switch role / Home
+            {t("switch.role", lang)}
           </Button>
         </Link>
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-8 z-50 px-4 py-2.5 rounded-xl bg-[#222B31] border border-white/15 text-sm shadow-xl">
           {toast}
