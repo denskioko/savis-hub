@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
+import { getBalance, getTransactions, topUp } from "@/lib/wallet";
 
 type Profile = {
   full_name: string | null;
@@ -17,6 +18,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [txCount, setTxCount] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -43,6 +46,8 @@ export default function ProfilePage() {
           email: user.email || null,
         }
       );
+      setBalance(getBalance());
+      setTxCount(getTransactions().length);
       setLoading(false);
     }
     load();
@@ -101,6 +106,34 @@ export default function ProfilePage() {
               {role}
             </span>
           </div>
+        </div>
+
+        {/* SAVIS Wallet */}
+        <div className="p-4 rounded-[20px] border border-[rgba(245,196,81,0.35)] bg-[rgba(245,196,81,0.08)] mb-4">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-xs font-bold text-[#F5C451]">SAVIS Wallet</p>
+              <p className="text-2xl font-extrabold">KSh {balance.toLocaleString()}</p>
+              <p className="text-[0.7rem] text-[#B9C3C9]">Sample balance · M-Pesa ready</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                topUp(2000);
+                setBalance(getBalance());
+                setTxCount(getTransactions().length);
+              }}
+              className="text-xs font-bold px-3 py-2 rounded-full text-white"
+              style={{
+                background: "linear-gradient(135deg, #E22227, #C7080C)",
+              }}
+            >
+              + Top up
+            </button>
+          </div>
+          <p className="text-[0.7rem] text-[#55666E]">
+            {txCount} recent transaction{txCount === 1 ? "" : "s"} · Holds & refunds appear when you book
+          </p>
         </div>
 
         <div className="space-y-3 mb-8">

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
 import { addBooking } from "@/lib/bookings";
+import { getBalance, holdForJob } from "@/lib/wallet";
 
 const PROVIDERS: Record<
   string,
@@ -134,6 +135,7 @@ export default function ProviderDetailPage() {
   const [urgency, setUrgency] = useState("today");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [balance, setBalance] = useState(0);
 
   useEffect(() => {
     async function check() {
@@ -145,6 +147,7 @@ export default function ProviderDetailPage() {
         router.replace("/login");
         return;
       }
+      setBalance(getBalance());
       setLoading(false);
     }
     check();
@@ -161,6 +164,16 @@ export default function ProviderDetailPage() {
       setError("Please add the job location.");
       return;
     }
+    const hold = holdForJob(
+      provider.rate,
+      "pending",
+      `Hold for ${provider.name}`
+    );
+    if (!hold.ok) {
+      setError(hold.message + " Top up from Profile (sample).");
+      return;
+    }
+    setBalance(getBalance());
     try {
       await addBooking({
         providerId: id,
@@ -204,7 +217,7 @@ export default function ProviderDetailPage() {
           <h1 className="text-2xl font-extrabold mb-2">Request sent</h1>
           <p className="text-[#B9C3C9] text-sm mb-6">
             Your request was sent to <strong className="text-white">{provider.name}</strong>.
-            They will respond soon. (This is a sample – no real message is sent yet.)
+            Funds are held in SAVIS Wallet escrow. They will respond soon. (Prototype — no real M-Pesa charge.)
           </p>
           <Link href="/consumer">
             <Button full>Back to Home</Button>
@@ -335,6 +348,14 @@ export default function ProviderDetailPage() {
                 <option value="today">Today</option>
                 <option value="week">This week</option>
               </select>
+            </div>
+
+            <div className="p-3 rounded-2xl border border-[rgba(245,196,81,0.35)] bg-[rgba(245,196,81,0.1)] text-sm">
+              <p className="font-bold text-[#F5C451] mb-0.5">SAVIS Wallet · M-Pesa</p>
+              <p className="text-[#B9C3C9] text-xs">
+                KSh {provider.rate.toLocaleString()} will be held in escrow until the job is done.
+                Balance: KSh {balance.toLocaleString()}
+              </p>
             </div>
 
             {error && (

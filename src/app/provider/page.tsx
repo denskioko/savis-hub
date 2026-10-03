@@ -16,6 +16,7 @@ import {
   syncBookings,
   type Booking,
 } from "@/lib/bookings";
+import { releaseForJob, refundForJob } from "@/lib/wallet";
 
 type Profile = {
   full_name: string | null;
@@ -112,16 +113,24 @@ export default function ProviderPage() {
   }
 
   async function declineJob(id: string) {
+    const job = getBookings().find((b) => b.id === id);
     await updateBookingStatus(id, "declined");
+    if (job) {
+      refundForJob(job.rate, id, `Refund: ${job.description.slice(0, 40)}`);
+    }
     refreshJobs();
-    showToast(lang === "sw" ? "Kazi imekataliwa" : "Job declined");
+    showToast(lang === "sw" ? "Kazi imekataliwa · Pesa imerejeshwa" : "Declined · Funds refunded to wallet");
   }
 
   async function completeJob(id: string) {
+    const job = getBookings().find((b) => b.id === id);
     await updateBookingStatus(id, "completed");
+    if (job) {
+      releaseForJob(job.rate, id, `Paid: ${job.description.slice(0, 40)}`);
+    }
     refreshJobs();
     showToast(
-      lang === "sw" ? "Kazi imekamilika" : "Job marked complete"
+      lang === "sw" ? "Kazi imekamilika · Malipo yametolewa" : "Completed · Escrow released"
     );
   }
 
