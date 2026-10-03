@@ -9,6 +9,7 @@ import LangToggle from "@/components/LangToggle";
 import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 import { distanceKm, getSavedLocation, requestCurrentLocation, type UserLocation } from "@/lib/location";
 import { getBookings, syncBookings, type Booking } from "@/lib/bookings";
+import SavisMap, { type SavisMapProvider } from "@/components/SavisMap";
 
 type Profile = { full_name: string | null; role: string | null; email: string | null };
 
@@ -94,6 +95,9 @@ export default function ConsumerPage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [radius, setRadius] = useState(10);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [selectedMapProvider, setSelectedMapProvider] = useState<SavisMapProvider | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [messageSent, setMessageSent] = useState(false);
 
   useEffect(() => {
     setLangState(getLang());
@@ -213,7 +217,6 @@ export default function ConsumerPage() {
 
   const firstName = profile?.full_name?.split(" ")[0] || "Friend";
   const mapCenter = userLocation || { latitude: -1.2864, longitude: 36.8172 };
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${mapCenter.longitude - 0.08}%2C${mapCenter.latitude - 0.06}%2C${mapCenter.longitude + 0.08}%2C${mapCenter.latitude + 0.06}&layer=mapnik&marker=${mapCenter.latitude}%2C${mapCenter.longitude}`;
 
   if (loading) {
     return <main className="min-h-screen flex items-center justify-center"><p className="text-[#B9C3C9]">Loading…</p></main>;
@@ -233,11 +236,9 @@ export default function ConsumerPage() {
   };
 
   const progress = (status: string) => ({
-    requested: 20,
-    accepted: 45,
-    declined: 0,
-    completed: 100,
-  }[status] ?? 20);
+    requested: 18, quote_pending: 30, accepted: 48, en_route: 68,
+    in_progress: 84, completed: 100, declined: 0, cancelled: 0, rescheduled: 32,
+  }[status] ?? 18);
 
   return (
     <main className="min-h-screen pb-28">
@@ -289,13 +290,14 @@ export default function ConsumerPage() {
           </section>
 
           <section className="mb-6 overflow-hidden rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)]">
-            <div className="flex items-center justify-between gap-3 px-4 pt-4"><div><h2 className="font-extrabold text-lg">Live nearby</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{realProviders ? `Providers within ${radius} km` : "Alpha sample providers"}</p></div><button type="button" onClick={() => setMapMode(true)} className="text-xs font-bold text-[#F5C451]">Open map →</button></div>
+            <div className="flex items-center justify-between gap-3 px-4 pt-4"><div><h2 className="font-extrabold text-lg">Live nearby</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{realProviders ? `Providers within ${radius} km` : "Alpha sample providers"}</p></div><button type="button" onClick={() => setMapMode(true)} className="text-xs font-bold text-[#F5C451]">Open live map →</button></div>
             <div className="relative mt-4 overflow-hidden border-y border-white/10">
-              <iframe title="SAVIS nearby map" src={mapUrl} className="h-56 w-full border-0" loading="lazy" />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#11171c]/70 via-transparent to-transparent" />
+              <SavisMap center={mapCenter} providers={filtered} onSelect={setSelectedMapProvider} />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#11171c]/35 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-[#11171c]/85 px-3 py-1.5 text-[0.65rem] font-bold backdrop-blur">● {filtered.length} nearby results</div>
             </div>
-            <p className="px-4 py-3 text-[0.62rem] text-[#55666E]">Map data © OpenStreetMap contributors. Full interactive provider pins are the next map-layer upgrade.</p>
+            <p className="px-4 py-3 text-[0.62rem] text-[#55666E]">Live provider pins · pan · pinch/scroll zoom · tap a provider for a quick card.</p>
+            {selectedMapProvider && <div className="mx-4 mb-4 rounded-2xl border border-[rgba(245,196,81,0.3)] bg-black/25 p-3"><div className="flex items-center justify-between gap-3"><div><b>{selectedMapProvider.name}</b><p className="text-xs text-[#B9C3C9]">{selectedMapProvider.skill} · {selectedMapProvider.km.toFixed(1)} km · ★ {selectedMapProvider.rating ? selectedMapProvider.rating.toFixed(1) : "New"}</p></div><Link href={`/consumer/provider/${selectedMapProvider.id}`} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-3 py-2 text-xs font-bold">View / quote</Link></div><p className="mt-2 text-xs text-[#B9C3C9]">{selectedMapProvider.rate ? `From KSh ${selectedMapProvider.rate.toLocaleString()}` : "Instant quote available"} · response time shown on provider profile.</p></div>}
           </section>
 
           <section id="nearby-results" className="mb-6">
@@ -324,6 +326,27 @@ export default function ConsumerPage() {
         </div>
       )}
 
+      {activeTab === "messages" && (
+        <div className="mx-auto max-w-lg px-4 pt-5">
+          <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F5C451]">Inbox & payments</p><h1 className="mt-1 text-2xl font-extrabold">Messages</h1><p className="mt-1 text-sm text-[#B9C3C9]">Service enquiries, quote alerts and payment updates stay together.</p></div>
+          <div className="mb-4 grid grid-cols-3 gap-2">{[["💬","Enquiries","Provider chats"],["💳","Payments","M-Pesa / wallet"],["🔔","Alerts","Quotes & milestones"]].map(([icon,title,desc]) => <button key={title} type="button" className="rounded-2xl border border-white/10 bg-[rgba(34,43,49,0.72)] p-3 text-left"><span className="text-xl">{icon}</span><b className="mt-2 block text-xs">{title}</b><span className="mt-1 block text-[0.62rem] text-[#B9C3C9]">{desc}</span></button>)}</div>
+          <div className="rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><div className="flex items-center justify-between"><b>Recent activity</b><span className="text-[0.65rem] text-[#34D399]">Secure foundation</span></div>
+            {bookings.slice(0,4).map((b) => <div key={b.id} className="mt-3 rounded-2xl bg-black/20 p-3"><div className="flex justify-between gap-3"><div><b className="text-sm">{b.providerName}</b><p className="text-xs text-[#B9C3C9]">{b.skill} · {b.description.slice(0,48)}</p></div><span className="text-xs text-[#F5C451] capitalize">{b.status.replace("_"," ")}</span></div><div className="mt-2 flex gap-2"><Link href={`/consumer/provider/${b.providerId}`} className="rounded-full bg-white/5 px-3 py-1.5 text-[0.65rem] font-bold">Open provider</Link><button type="button" onClick={() => { setMessageSent(true); setMessageText("Hello, I would like an update on my SAVIS job."); }} className="rounded-full bg-white/5 px-3 py-1.5 text-[0.65rem] font-bold">Message</button></div></div>)}
+            {bookings.length===0 && <div className="mt-3 rounded-2xl border border-dashed border-white/10 p-5 text-center text-sm text-[#B9C3C9]">Your provider conversations and payment alerts will appear here.</div>}
+          </div>
+          {messageSent && <div className="mt-3 rounded-2xl border border-[#34D399]/20 bg-[#34D399]/5 p-3"><p className="text-xs text-[#B9C3C9]">Live message delivery is wired to the production messaging foundation after the SQL migration. Draft: <b className="text-white">{messageText}</b></p></div>}
+        </div>
+      )}
+
+      {activeTab === "profile" && (
+        <div className="mx-auto max-w-lg px-4 pt-5">
+          <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F5C451]">Account & security</p><h1 className="mt-1 text-2xl font-extrabold">Profile</h1><p className="mt-1 text-sm text-[#B9C3C9]">Your identity, saved providers and security controls.</p></div>
+          <div className="rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4 mb-3"><div className="flex items-center gap-3"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] text-xl font-black">{firstName.charAt(0).toUpperCase()}</div><div><b className="text-lg">{profile?.full_name || firstName}</b><p className="text-xs text-[#B9C3C9]">{profile?.email || "SAVIS consumer"} · Consumer</p></div></div></div>
+          <div className="space-y-2">{[["⚙️","Settings","Appearance, language, notifications and location","/settings"],["🔐","Security","Password, 2FA and device management","/settings"],["❤️","Saved providers","Favorites and trusted providers","/profile"],["📋","Bookings & receipts","History, reviews and receipts","/bookings"]].map(([icon,title,desc,href]) => <Link key={title} href={href} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><span className="text-xl">{icon}</span><span className="min-w-0 flex-1"><b className="block text-sm">{title}</b><span className="block mt-1 text-xs text-[#B9C3C9]">{desc}</span></span><span className="text-[#F5C451]">→</span></Link>)}</div>
+          <div className="mt-4 rounded-[22px] border border-[rgba(245,196,81,0.25)] bg-[rgba(245,196,81,0.06)] p-4"><b className="text-sm text-[#F5C451]">SAVIS Wallet</b><p className="mt-1 text-xs text-[#B9C3C9]">The current wallet is prototype/local. The production payments ledger is prepared for M-Pesa and escrow integration.</p></div>
+        </div>
+      )}
+
       {activeTab === "jobs" && (
         <div className="mx-auto max-w-lg px-4 pt-5">
           <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F5C451]">Tracking</p><h1 className="mt-1 text-2xl font-extrabold">Bookings & Jobs</h1><p className="mt-1 text-sm text-[#B9C3C9]">Follow active work, quotes and your service history.</p></div>
@@ -338,6 +361,19 @@ export default function ConsumerPage() {
           {bookings.length === 0 && <div className="rounded-[20px] border border-dashed border-white/10 p-6 text-center"><p className="text-2xl">🧾</p><p className="mt-2 text-sm font-bold">No active jobs yet</p><p className="mt-1 text-xs text-[#B9C3C9]">When you request a provider, live job progress will appear here.</p></div>}
         </div>
       )}
+      {mapMode && (
+        <div className="fixed inset-0 z-[70] bg-[#11171c]">
+          <SavisMap center={mapCenter} providers={filtered} fullScreen onSelect={setSelectedMapProvider} />
+          <div className="absolute left-4 right-4 top-4 z-[90] flex items-center justify-between gap-2"><div className="rounded-full border border-white/10 bg-[#11171c]/90 px-4 py-2 text-sm font-bold backdrop-blur">SAVIS · Live map</div><button type="button" onClick={() => setMapMode(false)} className="rounded-full border border-white/10 bg-[#11171c]/90 px-4 py-2 text-sm font-bold backdrop-blur">Close ✕</button></div>
+          <div className="absolute bottom-6 left-4 right-4 z-[90] rounded-[22px] border border-white/10 bg-[#11171c]/92 p-3 backdrop-blur"><div className="flex items-center justify-between"><div><b>{filtered.length} providers in view</b><p className="text-xs text-[#B9C3C9]">Radius: {radius} km · tap a pin for quick details</p></div><button type="button" onClick={enableLocation} className="rounded-full bg-[#F5C451] px-3 py-2 text-xs font-black text-[#141B1F]">Recenter</button></div>{selectedMapProvider && <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3"><div><b className="text-sm">{selectedMapProvider.name}</b><p className="text-xs text-[#B9C3C9]">{selectedMapProvider.skill} · ★ {selectedMapProvider.rating ? selectedMapProvider.rating.toFixed(1) : "New"} · {selectedMapProvider.km.toFixed(1)} km</p></div><Link href={`/consumer/provider/${selectedMapProvider.id}`} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-3 py-2 text-xs font-bold">View</Link></div>}</div>
+        </div>
+      )}
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[rgba(17,23,28,0.94)] px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
+          {tabItems.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`rounded-2xl px-2 py-2 text-center transition ${activeTab===item.id ? "bg-white/10 text-white" : "text-[#7F8C93]"}`}><span className="block text-lg leading-none">{item.icon}</span><span className="mt-1 block text-[0.62rem] font-bold">{item.label}</span></button>)}
+        </div>
+      </nav>
     </main>
   );
 }
