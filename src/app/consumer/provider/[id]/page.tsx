@@ -70,6 +70,7 @@ export default function ProviderDetailPage() {
   const [desc, setDesc] = useState("");
   const [location, setLocation] = useState("");
   const [urgency, setUrgency] = useState("today");
+  const [scheduledFor, setScheduledFor] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [balance, setBalance] = useState(0);
@@ -138,6 +139,7 @@ export default function ProviderDetailPage() {
         location: location.trim(),
         urgency,
         rate: provider.rate,
+        scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
         latitude: currentLocation?.latitude,
         longitude: currentLocation?.longitude,
         locationAccuracy: currentLocation?.accuracy,
@@ -224,6 +226,12 @@ export default function ProviderDetailPage() {
             <div>
               <label className="block text-xs font-bold text-[#B9C3C9] mb-1.5">Where is the job?</label>
               <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-3.5 rounded-2xl bg-black/35 border border-white/15 text-white outline-none focus:border-[#E22227] focus:ring-2 focus:ring-[#E22227]/30" placeholder="e.g. Westlands, near Sarit Centre" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#B9C3C9] mb-1.5">Preferred date & time</label>
+              <input type="datetime-local" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} min={new Date().toISOString().slice(0,16)} className="w-full px-4 py-3.5 rounded-2xl bg-black/35 border border-white/15 text-white outline-none focus:border-[#E22227]" />
+              <p className="mt-1 text-[0.65rem] text-[#7F8C93]">Optional. The provider can confirm or propose a new time.</p>
             </div>
 
             <div>
