@@ -2,6 +2,8 @@
 
 Last updated: 2026-10-03
 
+Final-dream hardening pass: security/RLS follow-up committed after the main consumer deployment.
+
 ## Product
 SAVIS is a Kenya-focused marketplace connecting consumers with trusted local helpers, providers, professionals, sellers and agents.
 
