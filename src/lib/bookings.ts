@@ -4,9 +4,14 @@ import { createClient } from "@/lib/supabase/client";
 
 export type BookingStatus =
   | "requested"
+  | "quote_pending"
   | "accepted"
+  | "en_route"
+  | "in_progress"
+  | "completed"
   | "declined"
-  | "completed";
+  | "cancelled"
+  | "rescheduled";
 
 export type Booking = {
   id: string;
@@ -159,35 +164,32 @@ export async function addBooking(
 
 export async function updateBookingStatus(
   id: string,
-  status: BookingStatus
+  status: BookingStatus,
+  note?: string,
+  location?: { latitude?: number; longitude?: number }
 ): Promise<void> {
-  // Always update local first for snappy UI
-  const list = fromLocal().map((b) =>
-    b.id === id ? { ...b, status } : b
-  );
-  // If id not in local, still try remote
-  if (list.some((b) => b.id === id)) {
-    saveLocal(list);
-  } else {
-    // rebuild from any local + mark
-    saveLocal(
-      fromLocal().map((b) => (b.id === id ? { ...b, status } : b))
-    );
-  }
+  // Keep the UI responsive while the secure Supabase transition runs.
+  const optimistic = fromLocal().map((b) => b.id === id ? { ...b, status } : b);
+  saveLocal(optimistic);
 
   try {
     const supabase = createClient();
-    await supabase.from("jobs").update({ status }).eq("id", id);
-    // Refresh local from server when possible
+    const { error } = await supabase.rpc("transition_job", {
+      p_job_id: id,
+      p_next_status: status,
+      p_note: note ?? null,
+      p_latitude: location?.latitude ?? null,
+      p_longitude: location?.longitude ?? null,
+    });
+    if (error) throw error;
+
     const { data } = await supabase
       .from("jobs")
       .select("*")
       .order("created_at", { ascending: false });
-    if (data) {
-      saveLocal(data.map(rowToBooking));
-    }
+    if (data) saveLocal(data.map(rowToBooking));
   } catch {
-    /* local already updated */
+    // Demo/offline fallback: retain the optimistic local state.
   }
 }
 
