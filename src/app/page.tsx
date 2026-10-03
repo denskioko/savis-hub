@@ -15,6 +15,12 @@ const roles = [
     title: "Provider",
     desc: "Skilled trades: plumbers, masons, tailors, cleaners",
   },
+  {
+    href: "/signup?role=professional",
+    icon: "⚖️",
+    title: "Professional",
+    desc: "Licensed experts: lawyers, accountants, architects",
+  },
 ];
 
 export default function HomePage() {

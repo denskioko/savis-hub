@@ -42,7 +42,13 @@ export default function LoginPage() {
     if (profile?.role) role = profile.role;
 
     setLoading(false);
-    router.push(role === "provider" ? "/provider" : "/consumer");
+    const dest =
+      role === "provider"
+        ? "/provider"
+        : role === "professional"
+          ? "/professional"
+          : "/consumer";
+    router.push(dest);
     router.refresh();
   }
 

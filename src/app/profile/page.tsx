@@ -64,7 +64,12 @@ export default function ProfilePage() {
   }
 
   const role = profile?.role || "consumer";
-  const homeHref = role === "provider" ? "/provider" : "/consumer";
+  const homeHref =
+    role === "provider"
+      ? "/provider"
+      : role === "professional"
+        ? "/professional"
+        : "/consumer";
 
   return (
     <main className="min-h-screen pb-28">

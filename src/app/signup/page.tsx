@@ -12,7 +12,13 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const roleParam = searchParams.get("role") || "consumer";
 
-  const [role, setRole] = useState(roleParam === "provider" ? "provider" : "consumer");
+  const initialRole =
+    roleParam === "provider"
+      ? "provider"
+      : roleParam === "professional"
+        ? "professional"
+        : "consumer";
+  const [role, setRole] = useState(initialRole);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,23 +103,29 @@ function SignupForm() {
 
         <h1 className="text-2xl font-extrabold mb-1">Create your account</h1>
         <p className="text-[#B9C3C9] text-sm mb-6">
-          Join as a {role === "provider" ? "Provider" : "Consumer"}
+          Join as a {role === "provider" ? "Provider" : role === "professional" ? "Professional" : "Consumer"}
         </p>
 
         {/* Role toggle */}
-        <div className="flex gap-2 p-1 rounded-full bg-black/35 border border-white/10 mb-6">
-          {(["consumer", "provider"] as const).map((r) => (
+        <div className="flex gap-1.5 p-1 rounded-full bg-black/35 border border-white/10 mb-6">
+          {(
+            [
+              { id: "consumer", label: "🙋 Consumer" },
+              { id: "provider", label: "🛠️ Provider" },
+              { id: "professional", label: "⚖️ Pro" },
+            ] as const
+          ).map((r) => (
             <button
-              key={r}
+              key={r.id}
               type="button"
-              onClick={() => setRole(r)}
-              className={`flex-1 py-2.5 rounded-full text-sm font-bold transition ${
-                role === r
+              onClick={() => setRole(r.id)}
+              className={`flex-1 py-2.5 rounded-full text-xs font-bold transition ${
+                role === r.id
                   ? "text-white"
                   : "text-[#B9C3C9] hover:text-white"
               }`}
               style={
-                role === r
+                role === r.id
                   ? {
                       background: "linear-gradient(135deg, #E22227, #C7080C)",
                       boxShadow: "0 4px 14px rgba(226, 34, 39, 0.5)",
@@ -121,7 +133,7 @@ function SignupForm() {
                   : undefined
               }
             >
-              {r === "consumer" ? "🙋 Consumer" : "🛠️ Provider"}
+              {r.label}
             </button>
           ))}
         </div>
