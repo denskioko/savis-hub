@@ -6,7 +6,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
-import { getBookings, syncBookings, type Booking } from "@/lib/bookings";
+import {
+  getBookings,
+  syncBookings,
+  type Booking,
+  type BookingStatus,
+} from "@/lib/bookings";
+import { getReviewForJob, addReview } from "@/lib/reviews";
 
 const URGENCY_LABEL: Record<string, string> = {
   now: "Right now",
@@ -14,25 +20,32 @@ const URGENCY_LABEL: Record<string, string> = {
   week: "This week",
 };
 
-const STATUS_STYLE: Record<string, { label: string; className: string }> = {
+const STATUS: Record<
+  BookingStatus,
+  { label: string; className: string; hint: string }
+> = {
   requested: {
-    label: "Requested",
+    label: "Waiting for provider",
     className:
       "text-[#F5C451] bg-[rgba(245,196,81,0.12)] border-[rgba(245,196,81,0.4)]",
+    hint: "Your request was sent. The provider will respond soon.",
   },
   accepted: {
-    label: "Accepted",
+    label: "Accepted · In progress",
     className:
       "text-[#34D399] bg-[rgba(52,211,153,0.12)] border-[rgba(52,211,153,0.4)]",
+    hint: "Provider accepted. Work is underway.",
   },
   declined: {
     label: "Declined",
     className:
       "text-[#ff8a8d] bg-[rgba(255,138,141,0.12)] border-[rgba(255,138,141,0.4)]",
+    hint: "This provider declined. Try another nearby.",
   },
   completed: {
     label: "Completed",
     className: "text-[#B9C3C9] bg-white/5 border-white/15",
+    hint: "Job finished. Leave a rating if you haven’t yet.",
   },
 };
 
@@ -40,6 +53,19 @@ export default function BookingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [ratingJobId, setRatingJobId] = useState<string | null>(null);
+  const [stars, setStars] = useState(5);
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
+
+  function refreshReviews(list: Booking[]) {
+    const map: Record<string, boolean> = {};
+    list.forEach((b) => {
+      if (getReviewForJob(b.id)) map[b.id] = true;
+    });
+    setReviewed(map);
+  }
 
   useEffect(() => {
     async function check() {
@@ -52,13 +78,17 @@ export default function BookingsPage() {
         return;
       }
       await syncBookings();
-      setBookings(getBookings());
+      const list = getBookings();
+      setBookings(list);
+      refreshReviews(list);
       setLoading(false);
     }
     check();
 
     function onUpdate() {
-      setBookings(getBookings());
+      const list = getBookings();
+      setBookings(list);
+      refreshReviews(list);
     }
     window.addEventListener("savis-bookings-updated", onUpdate);
     window.addEventListener("storage", onUpdate);
@@ -67,6 +97,17 @@ export default function BookingsPage() {
       window.removeEventListener("storage", onUpdate);
     };
   }, [router]);
+
+  async function submitReview() {
+    if (!ratingJobId) return;
+    setSaving(true);
+    await addReview(ratingJobId, stars, comment);
+    setReviewed((r) => ({ ...r, [ratingJobId]: true }));
+    setRatingJobId(null);
+    setComment("");
+    setStars(5);
+    setSaving(false);
+  }
 
   if (loading) {
     return (
@@ -88,21 +129,37 @@ export default function BookingsPage() {
       <div className="max-w-lg mx-auto px-4 pt-6">
         <h1 className="text-2xl font-extrabold mb-1">My bookings</h1>
         <p className="text-[#B9C3C9] text-sm mb-6">
-          Jobs you have requested or booked
+          Track requests from sent to completed
         </p>
 
         {bookings.length === 0 ? (
-          <div className="text-center py-12 px-4 rounded-[20px] border border-dashed border-white/15 bg-[rgba(34,43,49,0.5)] mb-6">
+          <div className="text-center py-12 px-5 rounded-[20px] border border-dashed border-white/15 bg-[rgba(34,43,49,0.5)] mb-6">
             <div className="text-4xl mb-3">📋</div>
-            <p className="text-[#B9C3C9] text-sm mb-1">No bookings yet</p>
-            <p className="text-xs text-[#55666E]">
-              When you request a quote or book a provider, it will appear here.
+            <p className="font-bold text-sm mb-1">No bookings yet</p>
+            <p className="text-xs text-[#B9C3C9] mb-5 leading-relaxed">
+              Find a provider, send a request, and it will show up here with
+              live status.
             </p>
+            <div className="text-left max-w-xs mx-auto space-y-2 text-xs text-[#B9C3C9]">
+              <p>
+                <span className="text-[#F5C451] font-bold">1.</span> Search or
+                pick a category
+              </p>
+              <p>
+                <span className="text-[#F5C451] font-bold">2.</span> Open a
+                provider and request a quote
+              </p>
+              <p>
+                <span className="text-[#F5C451] font-bold">3.</span> Track
+                progress on this page
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3 mb-6">
             {bookings.map((b) => {
-              const st = STATUS_STYLE[b.status] || STATUS_STYLE.requested;
+              const st = STATUS[b.status] || STATUS.requested;
+              const hasReview = reviewed[b.id];
               return (
                 <div
                   key={b.id}
@@ -111,7 +168,7 @@ export default function BookingsPage() {
                   <div className="flex justify-between items-start gap-2 mb-1">
                     <div className="font-bold">{b.providerName}</div>
                     <span
-                      className={`text-[0.7rem] font-bold px-2.5 py-1 rounded-full border shrink-0 ${st.className}`}
+                      className={`text-[0.65rem] font-bold px-2.5 py-1 rounded-full border shrink-0 text-center max-w-[9.5rem] ${st.className}`}
                     >
                       {st.label}
                     </span>
@@ -121,9 +178,40 @@ export default function BookingsPage() {
                     {URGENCY_LABEL[b.urgency] || b.urgency}
                   </div>
                   <p className="text-sm text-[#B9C3C9] mb-2">{b.description}</p>
-                  <div className="text-sm font-bold text-[#F5C451]">
+                  <div className="text-sm font-bold text-[#F5C451] mb-2">
                     From KSh {b.rate.toLocaleString()}
                   </div>
+                  <p className="text-[0.7rem] text-[#55666E] mb-2">{st.hint}</p>
+
+                  {b.status === "completed" && !hasReview && (
+                    <button
+                      onClick={() => {
+                        setRatingJobId(b.id);
+                        setStars(5);
+                        setComment("");
+                      }}
+                      className="w-full mt-1 py-2.5 rounded-full text-xs font-bold text-white"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, #E22227, #C7080C)",
+                      }}
+                    >
+                      ★ Rate this job
+                    </button>
+                  )}
+                  {b.status === "completed" && hasReview && (
+                    <p className="text-xs text-[#34D399] font-semibold mt-1">
+                      ✓ Thanks for your review
+                    </p>
+                  )}
+                  {b.status === "declined" && (
+                    <Link
+                      href="/consumer"
+                      className="inline-block mt-1 text-xs font-bold text-[#F5C451]"
+                    >
+                      Find another provider →
+                    </Link>
+                  )}
                 </div>
               );
             })}
@@ -134,6 +222,49 @@ export default function BookingsPage() {
           <Button full>Find a provider</Button>
         </Link>
       </div>
+
+      {/* Rate modal */}
+      {ratingJobId && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-6">
+          <div className="w-full max-w-md p-5 rounded-[24px] border border-white/15 bg-[#222B31] shadow-2xl">
+            <h2 className="font-extrabold text-lg mb-1">Rate this job</h2>
+            <p className="text-sm text-[#B9C3C9] mb-4">
+              Your feedback helps the SAVIS community.
+            </p>
+            <div className="flex gap-2 justify-center mb-4">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setStars(n)}
+                  className={`text-3xl transition ${
+                    n <= stars ? "opacity-100" : "opacity-30"
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              placeholder="Optional comment…"
+              className="w-full px-4 py-3 rounded-2xl bg-black/35 border border-white/15 text-white outline-none focus:border-[#E22227] resize-none mb-4 text-sm"
+            />
+            <Button full onClick={submitReview} disabled={saving}>
+              {saving ? "Saving…" : "Submit review"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setRatingJobId(null)}
+              className="w-full text-sm text-[#B9C3C9] py-3 mt-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-[max(10px,env(safe-area-inset-bottom))] pt-2">
         <div className="max-w-lg mx-auto flex justify-around items-center py-2 px-1 rounded-full border border-white/10 bg-[rgba(34,43,49,0.9)] backdrop-blur-lg shadow-2xl">

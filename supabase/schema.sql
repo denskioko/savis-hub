@@ -88,3 +88,22 @@ drop trigger if exists jobs_updated_at on public.jobs;
 create trigger jobs_updated_at
   before update on public.jobs
   for each row execute function public.set_updated_at();
+
+-- Reviews (run this if you already ran the first schema)
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid references public.jobs (id) on delete cascade,
+  rating integer not null check (rating >= 1 and rating <= 5),
+  comment text,
+  created_at timestamptz default now()
+);
+
+alter table public.reviews enable row level security;
+
+drop policy if exists "Anyone authenticated can read reviews" on public.reviews;
+create policy "Anyone authenticated can read reviews"
+  on public.reviews for select to authenticated using (true);
+
+drop policy if exists "Authenticated users can insert reviews" on public.reviews;
+create policy "Authenticated users can insert reviews"
+  on public.reviews for insert to authenticated with check (true);
