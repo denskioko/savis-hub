@@ -25,6 +25,7 @@ type Provider = {
   latitude?: number;
   longitude?: number;
   verified?: boolean;
+  avatarUrl?: string;
 };
 
 const SAMPLE: Record<string, Provider> = {
@@ -57,6 +58,7 @@ function rowToProvider(row: Record<string, unknown>): Provider {
     latitude: row.latitude == null ? undefined : Number(row.latitude),
     longitude: row.longitude == null ? undefined : Number(row.longitude),
     verified: Boolean(row.verified),
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
   };
 }
 
@@ -74,6 +76,7 @@ export default function ProviderDetailPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [balance, setBalance] = useState(0);
+  const [services, setServices] = useState<Array<{id:string;name:string;description:string;starting_price:number;unit:string}>>([]);
 
   useEffect(() => {
     async function load() {
@@ -89,7 +92,7 @@ export default function ProviderDetailPage() {
       if (!SAMPLE[id]) {
         const { data } = await supabase
           .from("profiles")
-          .select("id, full_name, role, latitude, longitude, location_name, service_category, hourly_rate, rating, review_count, availability, verified, bio")
+          .select("id, full_name, role, avatar_url, latitude, longitude, location_name, service_category, hourly_rate, rating, review_count, availability, verified, verification_status, bio")
           .eq("id", id)
           .maybeSingle();
 
@@ -102,6 +105,11 @@ export default function ProviderDetailPage() {
               : 0,
           };
           setProvider(rowToProvider(row));
+          const serviceResult = await supabase.from("provider_services")
+            .select("id,name,description,starting_price,unit")
+            .eq("provider_id", id).eq("is_active", true)
+            .order("starting_price", { ascending: true });
+          if (!serviceResult.error && serviceResult.data) setServices(serviceResult.data);
         }
       }
       setLoading(false);
