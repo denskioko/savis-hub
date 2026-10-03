@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
+import AccountMenu from "@/components/AccountMenu";
 import { getBalance, getTransactions, topUp } from "@/lib/wallet";
 
 type Profile = {
