@@ -42,7 +42,15 @@ export default function LoginPage() {
     if (profile?.role) role = profile.role;
 
     setLoading(false);
-    router.push(role === "provider" ? "/provider" : "/consumer");
+    const destMap: Record<string, string> = {
+      provider: "/provider",
+      professional: "/professional",
+      seller: "/seller",
+      agent: "/agent",
+      consumer: "/consumer",
+    };
+    const dest = destMap[role] || "/consumer";
+    router.push(dest);
     router.refresh();
   }
 

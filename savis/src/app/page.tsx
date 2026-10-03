@@ -15,6 +15,24 @@ const roles = [
     title: "Provider",
     desc: "Skilled trades: plumbers, masons, tailors, cleaners",
   },
+  {
+    href: "/signup?role=professional",
+    icon: "⚖️",
+    title: "Professional",
+    desc: "Licensed experts: lawyers, accountants, architects",
+  },
+  {
+    href: "/signup?role=seller",
+    icon: "🏪",
+    title: "Seller",
+    desc: "Wholesale & retail shops: goods near you",
+  },
+  {
+    href: "/signup?role=agent",
+    icon: "🤝",
+    title: "Agent",
+    desc: "Earn by referring clients and providers",
+  },
 ];
 
 export default function HomePage() {
