@@ -336,7 +336,6 @@ export default function ConsumerPage() {
             </div>
           ))}
           {bookings.length === 0 && <div className="rounded-[20px] border border-dashed border-white/10 p-6 text-center"><p className="text-2xl">🧾</p><p className="mt-2 text-sm font-bold">No active jobs yet</p><p className="mt-1 text-xs text-[#B9C3C9]">When you request a provider, live job progress will appear here.</p></div>}
-                  </div>
         </div>
       )}
     </main>
