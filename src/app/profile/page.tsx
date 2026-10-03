@@ -160,6 +160,13 @@ export default function ProfilePage() {
             <span className="font-bold text-sm">Switch role</span>
             <span className="text-[#B9C3C9]">→</span>
           </Link>
+          <Link
+            href="/dev"
+            className="flex items-center justify-between p-4 rounded-[18px] border border-white/10 bg-[rgba(34,43,49,0.72)]"
+          >
+            <span className="font-bold text-sm">Developer tools</span>
+            <span className="text-[#B9C3C9]">→</span>
+          </Link>
         </div>
 
         <Button variant="outline" full onClick={handleLogout}>

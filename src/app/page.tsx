@@ -83,8 +83,7 @@ export default function HomePage() {
 
         {/* More roles note */}
         <p className="text-center text-sm text-[#55666E] mb-8 px-4">
-          Professional, Wholesale & Retail, and Agent roles will be added after
-          this first version is live.
+          Consumer · Provider · Professional · Seller · Agent
         </p>
 
         {/* Login CTA */}
