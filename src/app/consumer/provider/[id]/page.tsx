@@ -150,7 +150,7 @@ export default function ProviderDetailPage() {
     check();
   }, [router]);
 
-  function handleSend(e: React.FormEvent) {
+  async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (desc.trim().length < 5) {
@@ -161,16 +161,20 @@ export default function ProviderDetailPage() {
       setError("Please add the job location.");
       return;
     }
-    addBooking({
-      providerId: id,
-      providerName: provider.name,
-      skill: provider.skill,
-      description: desc.trim(),
-      location: location.trim(),
-      urgency,
-      rate: provider.rate,
-    });
-    setSent(true);
+    try {
+      await addBooking({
+        providerId: id,
+        providerName: provider.name,
+        skill: provider.skill,
+        description: desc.trim(),
+        location: location.trim(),
+        urgency,
+        rate: provider.rate,
+      });
+      setSent(true);
+    } catch {
+      setError("Could not send request. Please try again.");
+    }
   }
 
   if (loading) {

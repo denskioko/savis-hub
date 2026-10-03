@@ -1,4 +1,6 @@
-// Shared booking store for the prototype (browser localStorage)
+// Jobs / bookings — Supabase first, localStorage fallback for offline/demo
+
+import { createClient } from "@/lib/supabase/client";
 
 export type BookingStatus =
   | "requested"
@@ -17,55 +19,183 @@ export type Booking = {
   rate: number;
   status: BookingStatus;
   createdAt: string;
-  /** Optional display name of the consumer */
   consumerName?: string;
+  consumerId?: string;
 };
 
-const KEY = "savis_bookings";
+const LOCAL_KEY = "savis_bookings";
 
-export function getBookings(): Booking[] {
+function fromLocal(): Booking[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
+    return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]");
   } catch {
     return [];
   }
 }
 
-export function addBooking(
+function saveLocal(list: Booking[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(list));
+  window.dispatchEvent(new Event("savis-bookings-updated"));
+}
+
+function rowToBooking(row: Record<string, unknown>): Booking {
+  return {
+    id: String(row.id),
+    providerId: String(row.provider_id || ""),
+    providerName: String(row.provider_name || ""),
+    skill: String(row.skill || ""),
+    description: String(row.description || ""),
+    location: String(row.location || ""),
+    urgency: String(row.urgency || "today"),
+    rate: Number(row.rate) || 0,
+    status: (row.status as BookingStatus) || "requested",
+    createdAt: String(row.created_at || new Date().toISOString()),
+    consumerId: row.consumer_id ? String(row.consumer_id) : undefined,
+  };
+}
+
+/** Load all jobs (newest first). Tries Supabase, falls back to local. */
+export async function fetchBookings(): Promise<Booking[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    if (data) return data.map(rowToBooking);
+  } catch {
+    // table missing or network — use local
+  }
+  return fromLocal();
+}
+
+export function getBookings(): Booking[] {
+  return fromLocal();
+}
+
+export async function addBooking(
   booking: Omit<Booking, "id" | "createdAt" | "status">
-): Booking {
-  const list = getBookings();
-  const newBooking: Booking = {
+): Promise<Booking> {
+  const supabase = createClient();
+  let consumerId: string | undefined;
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    consumerId = user?.id;
+  } catch {
+    /* ignore */
+  }
+
+  // Try Supabase insert
+  try {
+    const { data, error } = await supabase
+      .from("jobs")
+      .insert({
+        consumer_id: consumerId || null,
+        provider_id: booking.providerId,
+        provider_name: booking.providerName,
+        skill: booking.skill,
+        description: booking.description,
+        location: booking.location,
+        urgency: booking.urgency,
+        rate: booking.rate,
+        status: "requested",
+      })
+      .select("*")
+      .single();
+
+    if (!error && data) {
+      const b = rowToBooking(data);
+      // Keep local copy in sync for this browser
+      const list = fromLocal();
+      list.unshift(b);
+      saveLocal(list);
+      return b;
+    }
+  } catch {
+    /* fall through to local */
+  }
+
+  // Local fallback
+  const local: Booking = {
     ...booking,
     id: Date.now().toString(),
     status: "requested",
     createdAt: new Date().toISOString(),
+    consumerId,
   };
-  list.unshift(newBooking);
-  localStorage.setItem(KEY, JSON.stringify(list));
-  // Notify other tabs / pages in the same browser
-  window.dispatchEvent(new Event("savis-bookings-updated"));
-  return newBooking;
+  const list = fromLocal();
+  list.unshift(local);
+  saveLocal(list);
+  return local;
 }
 
-export function updateBookingStatus(
+export async function updateBookingStatus(
   id: string,
   status: BookingStatus
-): void {
-  const list = getBookings().map((b) =>
+): Promise<void> {
+  // Always update local first for snappy UI
+  const list = fromLocal().map((b) =>
     b.id === id ? { ...b, status } : b
   );
-  localStorage.setItem(KEY, JSON.stringify(list));
-  window.dispatchEvent(new Event("savis-bookings-updated"));
+  // If id not in local, still try remote
+  if (list.some((b) => b.id === id)) {
+    saveLocal(list);
+  } else {
+    // rebuild from any local + mark
+    saveLocal(
+      fromLocal().map((b) => (b.id === id ? { ...b, status } : b))
+    );
+  }
+
+  try {
+    const supabase = createClient();
+    await supabase.from("jobs").update({ status }).eq("id", id);
+    // Refresh local from server when possible
+    const { data } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) {
+      saveLocal(data.map(rowToBooking));
+    }
+  } catch {
+    /* local already updated */
+  }
 }
 
-/** Bookings still waiting for a provider response */
 export function getOpenRequests(): Booking[] {
-  return getBookings().filter((b) => b.status === "requested");
+  return fromLocal().filter((b) => b.status === "requested");
 }
 
-/** Bookings a provider has accepted (active jobs) */
 export function getAcceptedJobs(): Booking[] {
-  return getBookings().filter((b) => b.status === "accepted");
+  return fromLocal().filter((b) => b.status === "accepted");
+}
+
+/** Pull latest from server into local cache */
+export async function syncBookings(): Promise<Booking[]> {
+  const remote = await fetchBookings();
+  if (remote.length > 0 || fromLocal().length === 0) {
+    // Prefer remote when available
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        saveLocal(data.map(rowToBooking));
+        return data.map(rowToBooking);
+      }
+    } catch {
+      /* keep local */
+    }
+  }
+  return fromLocal();
 }

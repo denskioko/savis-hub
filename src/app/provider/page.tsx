@@ -13,6 +13,7 @@ import {
   getOpenRequests,
   getAcceptedJobs,
   updateBookingStatus,
+  syncBookings,
   type Booking,
 } from "@/lib/bookings";
 
@@ -75,6 +76,7 @@ export default function ProviderPage() {
           role: user.user_metadata?.role || "provider",
         }
       );
+      await syncBookings();
       refreshJobs();
       setLoading(false);
     }
@@ -103,20 +105,20 @@ export default function ProviderPage() {
     setTimeout(() => setToast(null), 2200);
   }
 
-  function acceptJob(id: string) {
-    updateBookingStatus(id, "accepted");
+  async function acceptJob(id: string) {
+    await updateBookingStatus(id, "accepted");
     refreshJobs();
     showToast(lang === "sw" ? "Kazi imekubaliwa" : "Job accepted");
   }
 
-  function declineJob(id: string) {
-    updateBookingStatus(id, "declined");
+  async function declineJob(id: string) {
+    await updateBookingStatus(id, "declined");
     refreshJobs();
     showToast(lang === "sw" ? "Kazi imekataliwa" : "Job declined");
   }
 
-  function completeJob(id: string) {
-    updateBookingStatus(id, "completed");
+  async function completeJob(id: string) {
+    await updateBookingStatus(id, "completed");
     refreshJobs();
     showToast(
       lang === "sw" ? "Kazi imekamilika" : "Job marked complete"

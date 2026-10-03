@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
-import { getBookings, type Booking } from "@/lib/bookings";
+import { getBookings, syncBookings, type Booking } from "@/lib/bookings";
 
 const URGENCY_LABEL: Record<string, string> = {
   now: "Right now",
@@ -51,6 +51,7 @@ export default function BookingsPage() {
         router.replace("/login");
         return;
       }
+      await syncBookings();
       setBookings(getBookings());
       setLoading(false);
     }
