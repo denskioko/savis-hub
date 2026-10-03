@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
+import AccountMenu from "@/components/AccountMenu";
 import { getBalance, getTransactions, topUp } from "@/lib/wallet";
 
 type Profile = {
@@ -82,9 +83,7 @@ export default function ProfilePage() {
     <main className="min-h-screen pb-28">
       <header className="sticky top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[rgba(34,43,49,0.8)] backdrop-blur-md">
         <Logo size="sm" />
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full text-[#F5C451] bg-[rgba(245,196,81,0.12)] border border-[rgba(245,196,81,0.35)]">
-          Profile
-        </span>
+        <AccountMenu name={profile?.full_name || "Account"} role={profile?.role || "consumer"} homeHref={homeHref} />
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-6">
@@ -150,6 +149,14 @@ export default function ProfilePage() {
             className="flex items-center justify-between p-4 rounded-[18px] border border-white/10 bg-[rgba(34,43,49,0.72)]"
           >
             <span className="font-bold text-sm">My bookings</span>
+            <span className="text-[#B9C3C9]">→</span>
+          </Link>
+
+          <Link
+            href="/settings"
+            className="flex items-center justify-between p-4 rounded-[18px] border border-white/10 bg-[rgba(34,43,49,0.72)]"
+          >
+            <span className="font-bold text-sm">Settings</span>
             <span className="text-[#B9C3C9]">→</span>
           </Link>
 
