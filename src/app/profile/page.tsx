@@ -69,7 +69,9 @@ export default function ProfilePage() {
       ? "/provider"
       : role === "professional"
         ? "/professional"
-        : "/consumer";
+        : role === "seller"
+          ? "/seller"
+          : "/consumer";
 
   return (
     <main className="min-h-screen pb-28">

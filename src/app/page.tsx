@@ -21,6 +21,12 @@ const roles = [
     title: "Professional",
     desc: "Licensed experts: lawyers, accountants, architects",
   },
+  {
+    href: "/signup?role=seller",
+    icon: "🏪",
+    title: "Seller",
+    desc: "Wholesale & retail shops: goods near you",
+  },
 ];
 
 export default function HomePage() {

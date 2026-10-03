@@ -47,7 +47,9 @@ export default function LoginPage() {
         ? "/provider"
         : role === "professional"
           ? "/professional"
-          : "/consumer";
+          : role === "seller"
+            ? "/seller"
+            : "/consumer";
     router.push(dest);
     router.refresh();
   }

@@ -17,7 +17,9 @@ function SignupForm() {
       ? "provider"
       : roleParam === "professional"
         ? "professional"
-        : "consumer";
+        : roleParam === "seller"
+          ? "seller"
+          : "consumer";
   const [role, setRole] = useState(initialRole);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -103,16 +105,17 @@ function SignupForm() {
 
         <h1 className="text-2xl font-extrabold mb-1">Create your account</h1>
         <p className="text-[#B9C3C9] text-sm mb-6">
-          Join as a {role === "provider" ? "Provider" : role === "professional" ? "Professional" : "Consumer"}
+          Join as a {role === "provider" ? "Provider" : role === "professional" ? "Professional" : role === "seller" ? "Seller" : "Consumer"}
         </p>
 
         {/* Role toggle */}
         <div className="flex gap-1.5 p-1 rounded-full bg-black/35 border border-white/10 mb-6">
           {(
             [
-              { id: "consumer", label: "🙋 Consumer" },
-              { id: "provider", label: "🛠️ Provider" },
+              { id: "consumer", label: "🙋 Buyer" },
+              { id: "provider", label: "🛠️ Trade" },
               { id: "professional", label: "⚖️ Pro" },
+              { id: "seller", label: "🏪 Shop" },
             ] as const
           ).map((r) => (
             <button
