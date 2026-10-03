@@ -30,6 +30,7 @@ type Provider = {
   longitude?: number;
   verified?: boolean;
   bio?: string;
+  avatarUrl?: string;
 };
 
 const CATEGORIES = [
@@ -75,6 +76,7 @@ function providerFromRow(row: Record<string, unknown>): Provider {
     longitude: row.longitude == null ? undefined : Number(row.longitude),
     verified: Boolean(row.verified),
     bio: String(row.bio || "A local SAVIS provider ready to help."),
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
   };
 }
 
@@ -153,7 +155,7 @@ export default function ConsumerPage() {
 
     const result = await supabase
       .from("profiles")
-      .select("id, full_name, role, latitude, longitude, location_name, service_category, hourly_rate, rating, review_count, availability, verified, bio")
+      .select("id, full_name, role, avatar_url, latitude, longitude, location_name, service_category, hourly_rate, rating, review_count, availability, verified, verification_status, bio")
       .in("role", ["provider", "professional"])
       .not("latitude", "is", null)
       .not("longitude", "is", null)
