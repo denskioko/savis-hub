@@ -10,6 +10,7 @@ import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 import { distanceKm, getSavedLocation, requestCurrentLocation, type UserLocation } from "@/lib/location";
 import { getBookings, syncBookings, type Booking } from "@/lib/bookings";
 import SavisMap, { type SavisMapProvider } from "@/components/SavisMap";
+import { getOrCreateConversation, listConversations, sendMessage, type Conversation } from "@/lib/messaging";
 
 type Profile = { full_name: string | null; role: string | null; email: string | null };
 
@@ -98,6 +99,8 @@ export default function ConsumerPage() {
   const [selectedMapProvider, setSelectedMapProvider] = useState<SavisMapProvider | null>(null);
   const [messageText, setMessageText] = useState("");
   const [messageSent, setMessageSent] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messageBusy, setMessageBusy] = useState(false);
 
   useEffect(() => {
     setLangState(getLang());
@@ -182,6 +185,11 @@ export default function ConsumerPage() {
   useEffect(() => {
     if (!loading) void syncBookings().then(setBookings);
   }, [loading]);
+
+  useEffect(() => {
+    if (loading || activeTab !== "messages") return;
+    void listConversations().then(setConversations);
+  }, [loading, activeTab]);
 
   async function enableLocation() {
     setLocationBusy(true);
@@ -331,8 +339,19 @@ export default function ConsumerPage() {
           <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F5C451]">Inbox & payments</p><h1 className="mt-1 text-2xl font-extrabold">Messages</h1><p className="mt-1 text-sm text-[#B9C3C9]">Service enquiries, quote alerts and payment updates stay together.</p></div>
           <div className="mb-4 grid grid-cols-3 gap-2">{[["💬","Enquiries","Provider chats"],["💳","Payments","M-Pesa / wallet"],["🔔","Alerts","Quotes & milestones"]].map(([icon,title,desc]) => <button key={title} type="button" className="rounded-2xl border border-white/10 bg-[rgba(34,43,49,0.72)] p-3 text-left"><span className="text-xl">{icon}</span><b className="mt-2 block text-xs">{title}</b><span className="mt-1 block text-[0.62rem] text-[#B9C3C9]">{desc}</span></button>)}</div>
           <div className="rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><div className="flex items-center justify-between"><b>Recent activity</b><span className="text-[0.65rem] text-[#34D399]">Secure foundation</span></div>
-            {bookings.slice(0,4).map((b) => <div key={b.id} className="mt-3 rounded-2xl bg-black/20 p-3"><div className="flex justify-between gap-3"><div><b className="text-sm">{b.providerName}</b><p className="text-xs text-[#B9C3C9]">{b.skill} · {b.description.slice(0,48)}</p></div><span className="text-xs text-[#F5C451] capitalize">{b.status.replace("_"," ")}</span></div><div className="mt-2 flex gap-2"><Link href={`/consumer/provider/${b.providerId}`} className="rounded-full bg-white/5 px-3 py-1.5 text-[0.65rem] font-bold">Open provider</Link><button type="button" onClick={() => { setMessageSent(true); setMessageText("Hello, I would like an update on my SAVIS job."); }} className="rounded-full bg-white/5 px-3 py-1.5 text-[0.65rem] font-bold">Message</button></div></div>)}
-            {bookings.length===0 && <div className="mt-3 rounded-2xl border border-dashed border-white/10 p-5 text-center text-sm text-[#B9C3C9]">Your provider conversations and payment alerts will appear here.</div>}
+            {bookings.slice(0,4).map((b) => <div key={b.id} className="mt-3 rounded-2xl bg-black/20 p-3"><div className="flex justify-between gap-3"><div><b className="text-sm">{b.providerName}</b><p className="text-xs text-[#B9C3C9]">{b.skill} · {b.description.slice(0,48)}</p></div><span className="text-xs text-[#F5C451] capitalize">{b.status.replace("_"," ")}</span></div><div className="mt-2 flex gap-2"><Link href={`/consumer/provider/${b.providerId}`} className="rounded-full bg-white/5 px-3 py-1.5 text-[0.65rem] font-bold">Open provider</Link><button type="button" disabled={messageBusy} onClick={async () => {
+  setMessageBusy(true);
+  const conversation = await getOrCreateConversation(b.providerId, b.id);
+  if (conversation) {
+    await sendMessage(conversation.id, "Hello, I would like an update on my SAVIS job.");
+    setMessageText("Hello, I would like an update on my SAVIS job.");
+    setMessageSent(true);
+    setConversations(await listConversations());
+  }
+  setMessageBusy(false);
+}} className="rounded-full bg-white/5 px-3 py-1.5 text-[0.65rem] font-bold">{messageBusy ? "Sending…" : "Message"}</button></div></div>)}
+            {conversations.length > 0 && <div className="mt-3 border-t border-white/10 pt-3"><p className="text-[0.65rem] font-bold text-[#B9C3C9]">Conversations</p>{conversations.slice(0,4).map((conversation) => <div key={conversation.id} className="mt-2 flex items-center justify-between rounded-xl bg-white/5 px-3 py-2"><span className="text-xs">Provider · {conversation.providerId.slice(0,8)}…</span><span className="text-[0.6rem] text-[#7F8C93]">{new Date(conversation.lastMessageAt).toLocaleString()}</span></div>)}</div>}
+            {bookings.length===0 && conversations.length===0 && <div className="mt-3 rounded-2xl border border-dashed border-white/10 p-5 text-center text-sm text-[#B9C3C9]">Your provider conversations and payment alerts will appear here.</div>}
           </div>
           {messageSent && <div className="mt-3 rounded-2xl border border-[#34D399]/20 bg-[#34D399]/5 p-3"><p className="text-xs text-[#B9C3C9]">Live message delivery is wired to the production messaging foundation after the SQL migration. Draft: <b className="text-white">{messageText}</b></p></div>}
         </div>
