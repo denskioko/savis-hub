@@ -8,6 +8,7 @@ import AccountMenu from "@/components/AccountMenu";
 import LangToggle from "@/components/LangToggle";
 import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 import { distanceKm, getSavedLocation, requestCurrentLocation, type UserLocation } from "@/lib/location";
+import { getBookings, syncBookings, type Booking } from "@/lib/bookings";
 
 type Profile = { full_name: string | null; role: string | null; email: string | null };
 
@@ -30,9 +31,12 @@ type Provider = {
 };
 
 const CATEGORIES = [
-  ["all", "All", "✨"], ["Plumbing", "Plumbing", "🔧"], ["Masonry", "Mason", "🧱"],
-  ["Electrical", "Electrical", "⚡"], ["Tailoring", "Tailor", "🧵"], ["Cleaning", "Cleaning", "🧹"],
-  ["Carpentry", "Carpentry", "🪚"], ["Painting", "Painting", "🎨"], ["Photography", "Photo", "📷"],
+  ["all", "All", "✨"], ["Plumbing", "Plumbing", "🔧"], ["Electrical", "Electrical", "⚡"],
+  ["Masonry", "Masonry", "🧱"], ["Mechanics", "Mechanics", "🚗"], ["Cleaning", "Cleaning", "🧹"],
+  ["Carpentry", "Carpentry", "🪚"], ["Welding", "Welding", "🔥"], ["Tailoring", "Tailoring", "🧵"],
+  ["Painting", "Painting", "🎨"], ["Hardware", "Hardware", "🏪"], ["Quantity Surveying", "QS", "📐"],
+  ["Architecture", "Architecture", "🏛️"], ["Legal", "Legal", "⚖️"], ["Accounting", "Accounting", "🧾"],
+  ["Engineering", "Engineering", "⚙️"], ["Photography", "Photo", "📷"],
 ];
 
 const SAMPLE_PROVIDERS: Provider[] = [
@@ -85,6 +89,11 @@ export default function ConsumerPage() {
   const [providers, setProviders] = useState<Provider[]>(SAMPLE_PROVIDERS);
   const [realProviders, setRealProviders] = useState(false);
   const [providerMessage, setProviderMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<"home" | "for-you" | "jobs" | "messages" | "profile">("home");
+  const [mapMode, setMapMode] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [radius, setRadius] = useState(10);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
     setLangState(getLang());
@@ -123,7 +132,7 @@ export default function ConsumerPage() {
       const rpc = await supabase.rpc("search_nearby_providers", {
         p_lat: location.latitude,
         p_lng: location.longitude,
-        p_radius_km: 25,
+        p_radius_km: radius,
         p_category: categoryArg,
         p_limit: 40,
       });
@@ -164,7 +173,11 @@ export default function ConsumerPage() {
 
   useEffect(() => {
     if (!loading) void loadProviders(userLocation, activeCategory);
-  }, [loading, userLocation, activeCategory]);
+  }, [loading, userLocation, activeCategory, radius]);
+
+  useEffect(() => {
+    if (!loading) void syncBookings().then(setBookings);
+  }, [loading]);
 
   async function enableLocation() {
     setLocationBusy(true);
@@ -206,90 +219,126 @@ export default function ConsumerPage() {
     return <main className="min-h-screen flex items-center justify-center"><p className="text-[#B9C3C9]">Loading…</p></main>;
   }
 
+  const tabItems = [
+    { id: "home" as const, label: "Home", icon: "⌂" },
+    { id: "for-you" as const, label: "For You", icon: "✦" },
+    { id: "jobs" as const, label: "Jobs", icon: "▣" },
+    { id: "messages" as const, label: "Messages", icon: "◌" },
+    { id: "profile" as const, label: "Profile", icon: "◉" },
+  ];
+
+  const setTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const progress = (status: string) => ({
+    requested: 20,
+    accepted: 45,
+    declined: 0,
+    completed: 100,
+  }[status] ?? 20);
+
   return (
     <main className="min-h-screen pb-28">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(34,43,49,0.86)] px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <Link href="/consumer" aria-label="SAVIS home" className="font-extrabold tracking-tight text-xl">SAVIS</Link>
-          <div className="flex items-center gap-2">
-            <LangToggle lang={lang} onChange={switchLang} />
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(34,43,49,0.9)] px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-2">
+          <Link href="/consumer" aria-label="SAVIS home" className="text-xl font-black tracking-tight">SAVIS</Link>
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={() => setMapMode(true)} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.68rem] font-bold text-[#B9C3C9]">🗺 Map</button>
+            <button type="button" onClick={() => setShowTutorial(true)} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 font-black">?</button>
             <AccountMenu name={profile?.full_name || "Account"} role={profile?.role || "consumer"} homeHref="/consumer" />
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-lg px-4 pt-5">
-        <section className="mb-5 rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4">
-          <p className="text-sm text-[#B9C3C9]">{t("welcome.back", lang)}</p>
-          <div className="mt-1 flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Hi, {firstName} 👋</h1>
-              <p className="mt-1 text-sm text-[#B9C3C9]">{t("find.help", lang)}</p>
+      {activeTab === "home" && (
+        <div className="mx-auto max-w-lg px-4 pt-5">
+          <section className="mb-5 rounded-[24px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4">
+            <p className="text-sm text-[#B9C3C9]">{t("welcome.back", lang)}</p>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <div><h1 className="text-2xl font-extrabold tracking-tight">Hi, {firstName} 👋</h1><p className="mt-1 text-sm text-[#B9C3C9]">What do you need help with today?</p></div>
+              <button type="button" onClick={() => setTab("profile")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] text-sm font-extrabold">{firstName.charAt(0).toUpperCase()}</button>
             </div>
-            <Link href="/profile" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] text-sm font-extrabold">
-              {firstName.charAt(0).toUpperCase()}
-            </Link>
+          </section>
+
+          <section className="mb-4">
+            <div className="flex gap-2 rounded-full bg-white p-1.5 shadow-xl">
+              <input value={search} onChange={(e) => setSearch(e.target.value)} className="min-w-0 flex-1 rounded-full px-4 py-3 text-[0.95rem] text-[#222B31] outline-none" placeholder="Search services, providers or shops…" />
+              <button type="button" onClick={() => document.getElementById("nearby-results")?.scrollIntoView({ behavior: "smooth" })} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-5 py-3 text-sm font-bold text-white">Search</button>
+            </div>
+            <div className="mt-3 flex items-center gap-2 px-1">
+              <span className="text-[#B9C3C9]">📍</span><span className="min-w-0 flex-1 truncate text-sm text-[#B9C3C9]">{userLocation ? "Current location" : "Nairobi"}</span>
+              <select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="rounded-full border border-white/10 bg-[#222B31] px-3 py-1.5 text-xs font-bold outline-none"><option value={5}>Within 5 km</option><option value={10}>Within 10 km</option><option value={25}>Within 25 km</option><option value={50}>Within 50 km</option></select>
+              <button type="button" onClick={enableLocation} disabled={locationBusy} className="text-xs font-bold text-[#F5C451]">{locationBusy ? "…" : "Use my location"}</button>
+            </div>
+            {locationMessage && <p className="mt-2 px-1 text-xs text-[#B9C3C9]">{locationMessage}</p>}
+          </section>
+
+          <section className="mb-5 overflow-hidden rounded-[20px] border border-[rgba(245,196,81,0.28)] bg-gradient-to-br from-[rgba(108,1,2,0.92)] to-[rgba(34,43,49,0.92)] p-5">
+            <div className="flex items-center justify-between"><span className="rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Sponsored</span><span className="text-xs text-[#B9C3C9]">Local business</span></div>
+            <h2 className="mt-3 text-lg font-extrabold">Trusted help, close to you.</h2><p className="mt-1 text-sm leading-relaxed text-[#e6d9da]">Find a provider, compare options and request a job without leaving SAVIS.</p>
+          </section>
+
+          <section className="mb-6">
+            <div className="mb-3 flex items-center justify-between"><h2 className="font-extrabold text-lg">Categories</h2><span className="text-xs text-[#B9C3C9]">17 service types</span></div>
+            <div className="grid grid-cols-4 gap-2">
+              {CATEGORIES.slice(0, 12).map(([id, name, icon]) => <button key={id} type="button" onClick={() => { setActiveCategory(id); setTab("home"); }} className={`rounded-2xl border p-2.5 text-center transition ${activeCategory === id ? "border-[#E22227] bg-[rgba(226,34,39,0.2)]" : "border-white/10 bg-[rgba(34,43,49,0.72)]"}`}><span className="block text-xl">{icon}</span><span className="mt-1 block truncate text-[0.65rem] font-bold text-[#B9C3C9]">{name}</span></button>)}
+            </div>
+            <button type="button" onClick={() => setShowTutorial(true)} className="mt-3 text-xs font-bold text-[#F5C451]">How SAVIS works →</button>
+          </section>
+
+          <section className="mb-6 overflow-hidden rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)]">
+            <div className="flex items-center justify-between gap-3 px-4 pt-4"><div><h2 className="font-extrabold text-lg">Live nearby</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{realProviders ? `Providers within ${radius} km` : "Alpha sample providers"}</p></div><button type="button" onClick={() => setMapMode(true)} className="text-xs font-bold text-[#F5C451]">Open map →</button></div>
+            <div className="relative mt-4 overflow-hidden border-y border-white/10">
+              <iframe title="SAVIS nearby map" src={mapUrl} className="h-56 w-full border-0" loading="lazy" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#11171c]/70 via-transparent to-transparent" />
+              <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-[#11171c]/85 px-3 py-1.5 text-[0.65rem] font-bold backdrop-blur">● {filtered.length{'}'} nearby results</div>
+            </div>
+            <p className="px-4 py-3 text-[0.62rem] text-[#55666E]">Map data © OpenStreetMap contributors. Full interactive provider pins are the next map-layer upgrade.</p>
+          </section>
+
+          <section id="nearby-results" className="mb-6">
+            <div className="mb-3 flex items-center justify-between"><div><h2 className="font-extrabold text-lg">{search || activeCategory !== "all" ? `Results (${filtered.length})` : "People near you"}</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{providerMessage || "Trusted local providers"}</p></div>{(search || activeCategory !== "all") && <button type="button" onClick={() => { setSearch(""); setActiveCategory("all"); }} className="text-xs font-bold text-[#F5C451]">Clear</button>}</div>
+            <div className="space-y-3.5">
+              {filtered.slice(0, 8).map((p) => <div key={p.id} className="rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><div className="flex gap-3"><div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#6C0102] to-[#C7080C] text-2xl">{p.icon}<span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#222B31] bg-[#34D399] text-[10px] font-extrabold text-[#06281c]">✓</span></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><div className="font-bold">{p.name}</div><div className="text-xs text-[#B9C3C9]">{p.skill} · {p.km.toFixed(1)} km · {p.area}</div></div>{p.verified !== false && <span className="text-xs font-bold text-[#34D399]">Verified</span>}</div><div className="my-2 flex flex-wrap gap-1.5"><span className="rounded-full border border-[rgba(245,196,81,0.35)] bg-[rgba(245,196,81,0.12)] px-2 py-1 text-[0.68rem] font-semibold text-[#F5C451]">{p.rate ? `From KSh ${p.rate.toLocaleString()}` : "Quote"}</span><span className="rounded-full bg-white/5 px-2 py-1 text-[0.68rem] text-[#B9C3C9]">{p.available}</span></div><div className="flex items-center justify-between"><span className="text-sm font-bold">★ {p.rating ? p.rating.toFixed(1) : "New"} <span className="font-normal text-[#B9C3C9]">{p.reviews ? `(${p.reviews})` : ""}</span></span><Link href={`/consumer/provider/${p.id}`} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-4 py-2 text-xs font-bold text-white">View profile</Link></div></div></div></div>)}
+              {filtered.length === 0 && <div className="rounded-[20px] border border-dashed border-white/15 px-4 py-10 text-center text-sm text-[#B9C3C9]">No providers match this search yet.</div>}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {activeTab === "for-you" && (
+        <div className="mx-auto max-w-lg px-4 pt-5">
+          <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F5C451]">Discovery</p><h1 className="mt-1 text-2xl font-extrabold">For You</h1><p className="mt-1 text-sm text-[#B9C3C9]">Discover local work, products and providers worth saving.</p></div>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              ["🪑","Custom furniture","Made-to-order pieces from local makers"],
+              ["🚿","Bathroom fittings","Fixtures, repairs and installation"],
+              ["🧰","Hardware & tools","Shops and fabricators near you"],
+              ["👗","Tailored fashion","Custom clothing and alterations"],
+            ].map(([icon,title,desc]) => <button key={title} type="button" onClick={() => { setSearch(title); setTab("home"); }} className="overflow-hidden rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] text-left"><div className="flex h-28 items-center justify-center bg-gradient-to-br from-[#1d2b3a] to-[#3b1013] text-5xl">{icon}</div><div className="p-3"><h2 className="text-sm font-extrabold">{title}</h2><p className="mt-1 text-[0.68rem] leading-relaxed text-[#B9C3C9]">{desc}</p><span className="mt-2 block text-[0.65rem] font-bold text-[#F5C451]">Explore →</span></div></button>)}
           </div>
-        </section>
+          <div className="mt-4 rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><div className="flex items-center gap-3"><span className="text-3xl">▶</span><div><h2 className="font-extrabold">Short videos are coming</h2><p className="mt-1 text-xs leading-relaxed text-[#B9C3C9]">The feed is designed for work-in-progress clips, product demos and finished projects. Likes, saves and hire/order actions will live on the media.</p></div></div></div>
+          <div className="mt-4 rounded-[22px] border border-[rgba(245,196,81,0.25)] bg-[rgba(245,196,81,0.06)] p-4"><p className="text-xs leading-relaxed text-[#B9C3C9]"><b className="text-[#F5C451]">Marketplace safety:</b> product publishing will have moderation hooks before goods become publicly discoverable.</p></div>
+        </div>
+      )}
 
-        <section className="mb-5">
-          <div className="flex gap-2 rounded-full bg-white p-1.5 shadow-xl">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} className="min-w-0 flex-1 rounded-full px-4 py-3 text-[0.95rem] text-[#222B31] outline-none" placeholder={t("search.placeholder", lang)} />
-            <button type="button" onClick={() => document.getElementById("nearby-results")?.scrollIntoView({ behavior: "smooth" })} className="whitespace-nowrap rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-5 py-3 text-sm font-bold text-white">🔍 {t("search", lang)}</button>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3 px-1 text-sm">
-            <div className="flex min-w-0 items-center gap-2 text-[#B9C3C9]"><span>📍</span><span className="truncate">{userLocation ? "Current location" : "Nairobi"}</span></div>
-            <button type="button" onClick={enableLocation} disabled={locationBusy} className="shrink-0 font-bold text-[#F5C451]">{locationBusy ? "Locating…" : "Use my location"}</button>
-          </div>
-          {locationMessage && <p className="mt-2 px-1 text-xs text-[#B9C3C9]">{locationMessage}</p>}
-        </section>
-
-        <section className="mb-5 overflow-hidden rounded-[20px] border border-[rgba(245,196,81,0.28)] bg-gradient-to-br from-[rgba(108,1,2,0.92)] to-[rgba(34,43,49,0.92)] p-5">
-          <div className="mb-2 flex items-center justify-between"><span className="rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Sponsored</span><span className="text-xs text-[#B9C3C9]">Local business</span></div>
-          <h2 className="text-lg font-extrabold">Reach more customers with SAVIS</h2>
-          <p className="mt-1 max-w-sm text-sm leading-relaxed text-[#e6d9da]">Promote a trusted local service or shop to people searching nearby.</p>
-          <button type="button" className="mt-4 rounded-full bg-white px-4 py-2 text-xs font-extrabold text-[#6C0102]">View ad</button>
-        </section>
-
-        <section className="mb-6">
-          <div className="mb-3 flex items-center justify-between"><h2 className="font-extrabold text-lg">Categories</h2><span className="text-xs text-[#B9C3C9]">Popular near you</span></div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {CATEGORIES.map(([id, name, icon]) => (
-              <button key={id} type="button" onClick={() => setActiveCategory(id)} className={`flex min-w-[76px] shrink-0 flex-col items-center gap-1 rounded-2xl border px-3 py-2.5 text-xs font-bold transition ${activeCategory === id ? "border-[#E22227] bg-[rgba(226,34,39,0.2)] text-white" : "border-white/10 bg-[rgba(34,43,49,0.72)] text-[#B9C3C9]"}`}>
-                <span className="text-lg">{icon}</span><span>{name}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="mb-6 overflow-hidden rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)]">
-          <div className="flex items-center justify-between gap-3 px-4 pt-4"><div><h2 className="font-extrabold text-lg">Nearby map</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{realProviders ? "Live provider discovery" : userLocation ? "Centered on your current location" : "Showing Nairobi until you enable location"}</p></div><a href={`https://www.openstreetmap.org/?mlat=${mapCenter.latitude}&mlon=${mapCenter.longitude}#map=13/${mapCenter.latitude}/${mapCenter.longitude}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#F5C451]">Open map ↗</a></div>
-          <div className="mt-4 overflow-hidden border-y border-white/10"><iframe title="SAVIS nearby map" src={mapUrl} className="h-64 w-full border-0" loading="lazy" /></div>
-          <p className="px-4 py-3 text-[0.65rem] text-[#55666E]">Map data © OpenStreetMap contributors. Multi-provider markers come in the next map layer.</p>
-        </section>
-
-        <section id="nearby-results" className="mb-6">
-          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-extrabold text-lg">{search || activeCategory !== "all" ? `Results (${filtered.length})` : "People near you"}</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{providerMessage || "Trusted local providers"}</p></div>{(search || activeCategory !== "all") && <button type="button" onClick={() => { setSearch(""); setActiveCategory("all"); }} className="text-xs font-bold text-[#F5C451]">{t("clear", lang)}</button>}</div>
-          <div className="space-y-3.5">
-            {filtered.length === 0 ? <div className="rounded-[20px] border border-dashed border-white/15 bg-[rgba(34,43,49,0.5)] px-4 py-10 text-center"><p className="text-sm text-[#B9C3C9]">{t("nothing.found", lang)}</p></div> : filtered.map((p) => (
-              <div key={p.id} className="rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4">
-                <div className="flex gap-3.5"><div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#6C0102] to-[#C7080C] text-2xl">{p.icon}<span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#222B31] bg-[#34D399] text-[10px] font-extrabold text-[#06281c]">✓</span></div>
-                  <div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><div className="font-bold">{p.name}</div><div className="mb-2 text-xs text-[#B9C3C9]">{p.skill} · {p.km.toFixed(1)} km · {p.area}</div></div>{p.verified !== false && <span className="shrink-0 text-xs font-bold text-[#34D399]">Verified</span>}</div>
-                    <div className="mb-2.5 flex flex-wrap gap-1.5"><span className="rounded-full border border-[rgba(245,196,81,0.35)] bg-[rgba(245,196,81,0.12)] px-2.5 py-1 text-[0.7rem] font-semibold text-[#F5C451]">{p.rate ? `${t("from.ksh", lang)} ${p.rate.toLocaleString()}` : "Rate on request"}</span><span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.7rem] font-semibold text-[#B9C3C9]">{p.available}</span>{p.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.7rem] font-semibold text-[#B9C3C9]">{tag}</span>)}</div>
-                    <div className="flex items-center justify-between gap-2"><span className="text-sm font-bold">{p.rating ? `★ ${p.rating.toFixed(1)}` : "New provider"} <span className="font-normal text-[#B9C3C9]">{p.reviews ? `(${p.reviews})` : ""}</span></span><Link href={`/consumer/provider/${p.id}`} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-4 py-2 text-xs font-bold text-white">View profile</Link></div>
+      {activeTab === "jobs" && (
+        <div className="mx-auto max-w-lg px-4 pt-5">
+          <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F5C451]">Tracking</p><h1 className="mt-1 text-2xl font-extrabold">Bookings & Jobs</h1><p className="mt-1 text-sm text-[#B9C3C9]">Follow active work, quotes and your service history.</p></div>
+          <Link href="/bookings" className="mb-4 flex items-center justify-between rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><div><b className="text-sm">Open full bookings</b><p className="mt-1 text-xs text-[#B9C3C9]">Reviews, receipts and full booking details</p></div><span className="text-[#F5C451]">→</span></Link>
+          {bookings.slice(0, 3).map((booking) => (
+            <div key={booking.id} className="mb-3 rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4">
+              <div className="flex justify-between gap-3"><div><b>{booking.providerName}</b><p className="text-xs text-[#B9C3C9]">{booking.skill} · #SV-{booking.id.slice(-4)}</p></div><span className="rounded-full bg-[#F5C451]/10 px-2.5 py-1 text-[0.62rem] font-bold text-[#F5C451] capitalize">{booking.status}</span></div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-[#E22227] to-[#F5C451]" style={{ width: `${progress(booking.status)}%` }} /></div>
+              <div className="mt-2 flex justify-between text-[0.62rem] text-[#7F8C93]"><span>Requested</span><span>Accepted</span><span>En route</span><span>Done</span></div>
+            </div>
+          ))}
+          {bookings.length === 0 && <div className="rounded-[20px] border border-dashed border-white/10 p-6 text-center"><p className="text-2xl">🧾</p><p className="mt-2 text-sm font-bold">No active jobs yet</p><p className="mt-1 text-xs text-[#B9C3C9]">When you request a provider, live job progress will appear here.</p></div>}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mb-5"><div className="mb-3 flex items-center justify-between"><h2 className="font-extrabold text-lg">Recommended for you</h2><span className="text-xs text-[#B9C3C9]">Based on activity</span></div><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-[18px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><span className="text-xl">⚡</span><h3 className="mt-2 text-sm font-extrabold">Electrical help nearby</h3><p className="mt-1 text-xs leading-relaxed text-[#B9C3C9]">Find electrical providers around your selected location.</p><button type="button" onClick={() => setActiveCategory("Electrical")} className="mt-3 text-xs font-extrabold text-[#F5C451]">Explore →</button></div><div className="rounded-[18px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-4"><span className="text-xl">🧹</span><h3 className="mt-2 text-sm font-extrabold">Home cleaning</h3><p className="mt-1 text-xs leading-relaxed text-[#B9C3C9]">Find available cleaners near your selected location.</p><button type="button" onClick={() => setActiveCategory("Cleaning")} className="mt-3 text-xs font-extrabold text-[#F5C451]">Explore →</button></div></div></section>
-
-        <p className="text-center text-xs leading-relaxed text-[#55666E]">Alpha fallback remains available while providers publish real profiles and locations.</p>
-      </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-[max(10px,env(safe-area-inset-bottom))] pt-2"><div className="mx-auto flex max-w-lg justify-around items-center rounded-full border border-white/10 bg-[rgba(34,43,49,0.9)] px-1 py-2 shadow-2xl backdrop-blur-lg"><Link href="/consumer" className="flex flex-col items-center gap-0.5 rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-4 py-1.5 text-[0.65rem] font-bold text-white"><span className="text-base">🏠</span>Home</Link><button type="button" onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); document.querySelector<HTMLInputElement>("input")?.focus(); }} className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-[0.65rem] font-bold text-[#B9C3C9]"><span className="text-base">🔍</span>Search</button><Link href="/bookings" className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-[0.65rem] font-bold text-[#B9C3C9]"><span className="text-base">📋</span>Bookings</Link><Link href="/messages" className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-[0.65rem] font-bold text-[#B9C3C9]"><span className="text-base">💬</span>Messages</Link><Link href="/profile" className="hidden flex-col items-center gap-0.5 px-4 py-1.5 text-[0.65rem] font-bold text-[#B9C3C9] sm:flex"><span className="text-base">👤</span>Profile</Link></div></nav>
+        </div>
+      )}
     </main>
   );
 }
