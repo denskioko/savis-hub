@@ -1,0 +1,24 @@
+{
+  "name": "SAVIS",
+  "short_name": "SAVIS",
+  "description": "Find trusted local help in Kenya",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1012",
+  "theme_color": "#C7080C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

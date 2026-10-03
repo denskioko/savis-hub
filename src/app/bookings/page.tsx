@@ -13,6 +13,8 @@ import {
   type BookingStatus,
 } from "@/lib/bookings";
 import { getReviewForJob, addReview } from "@/lib/reviews";
+import LangToggle from "@/components/LangToggle";
+import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 
 const URGENCY_LABEL: Record<string, string> = {
   now: "Right now",
@@ -58,6 +60,16 @@ export default function BookingsPage() {
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
+  const [lang, setLangState] = useState<Lang>("en");
+
+  useEffect(() => {
+    setLangState(getLang());
+  }, []);
+
+  function switchLang(l: Lang) {
+    setLang(l);
+    setLangState(l);
+  }
 
   function refreshReviews(list: Booking[]) {
     const map: Record<string, boolean> = {};
@@ -121,24 +133,26 @@ export default function BookingsPage() {
     <main className="min-h-screen pb-28">
       <header className="sticky top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[rgba(34,43,49,0.8)] backdrop-blur-md">
         <Logo size="sm" />
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full text-[#F5C451] bg-[rgba(245,196,81,0.12)] border border-[rgba(245,196,81,0.35)]">
-          Bookings
-        </span>
+        <div className="flex items-center gap-2">
+          <LangToggle lang={lang} onChange={switchLang} />
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full text-[#F5C451] bg-[rgba(245,196,81,0.12)] border border-[rgba(245,196,81,0.35)]">
+            {t("bookings", lang)}
+          </span>
+        </div>
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-6">
-        <h1 className="text-2xl font-extrabold mb-1">My bookings</h1>
+        <h1 className="text-2xl font-extrabold mb-1">{t("my.bookings", lang)}</h1>
         <p className="text-[#B9C3C9] text-sm mb-6">
-          Track requests from sent to completed
+          {t("track.requests", lang)}
         </p>
 
         {bookings.length === 0 ? (
           <div className="text-center py-12 px-5 rounded-[20px] border border-dashed border-white/15 bg-[rgba(34,43,49,0.5)] mb-6">
             <div className="text-4xl mb-3">📋</div>
-            <p className="font-bold text-sm mb-1">No bookings yet</p>
+            <p className="font-bold text-sm mb-1">{t("no.bookings", lang)}</p>
             <p className="text-xs text-[#B9C3C9] mb-5 leading-relaxed">
-              Find a provider, send a request, and it will show up here with
-              live status.
+              {t("empty.guide", lang)}
             </p>
             <div className="text-left max-w-xs mx-auto space-y-2 text-xs text-[#B9C3C9]">
               <p>
@@ -196,7 +210,7 @@ export default function BookingsPage() {
                           "linear-gradient(135deg, #E22227, #C7080C)",
                       }}
                     >
-                      ★ Rate this job
+                      {`★ ${t("rate.job", lang)}`}
                     </button>
                   )}
                   {b.status === "completed" && hasReview && (
@@ -219,7 +233,7 @@ export default function BookingsPage() {
         )}
 
         <Link href="/consumer">
-          <Button full>Find a provider</Button>
+          <Button full>{t("find.provider", lang)}</Button>
         </Link>
       </div>
 
