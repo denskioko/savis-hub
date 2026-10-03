@@ -183,10 +183,10 @@ create policy "provider updates verification" on public.provider_verifications f
 create or replace function public.transition_job(
   p_job_id uuid,p_next_status text,p_note text default null,
   p_latitude double precision default null,p_longitude double precision default null
-) returns public.jobs language plpgsql security definer set search_path=public as $$
+) returns public.jobs language plpgsql security definer set search_path='' as $
 declare j public.jobs; ok boolean:=false;
 begin
-  select * into j from public.jobs where id=p_job_id for update;
+  select * into j from public.jobs where public.jobs.id=p_job_id for update;
   if not found then raise exception 'Job not found'; end if;
   if not (j.consumer_id=auth.uid() or j.provider_id=auth.uid()::text) then raise exception 'Not authorized'; end if;
   ok:=case
