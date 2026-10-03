@@ -21,6 +21,9 @@ export type Booking = {
   createdAt: string;
   consumerName?: string;
   consumerId?: string;
+  latitude?: number;
+  longitude?: number;
+  locationAccuracy?: number;
 };
 
 const LOCAL_KEY = "savis_bookings";
@@ -53,6 +56,9 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     status: (row.status as BookingStatus) || "requested",
     createdAt: String(row.created_at || new Date().toISOString()),
     consumerId: row.consumer_id ? String(row.consumer_id) : undefined,
+    latitude: row.latitude == null ? undefined : Number(row.latitude),
+    longitude: row.longitude == null ? undefined : Number(row.longitude),
+    locationAccuracy: row.location_accuracy == null ? undefined : Number(row.location_accuracy),
   };
 }
 
@@ -94,25 +100,37 @@ export async function addBooking(
 
   // Try Supabase insert
   try {
-    const { data, error } = await supabase
+    const baseInsert = {
+      consumer_id: consumerId || null,
+      provider_id: booking.providerId,
+      provider_name: booking.providerName,
+      skill: booking.skill,
+      description: booking.description,
+      location: booking.location,
+      urgency: booking.urgency,
+      rate: booking.rate,
+      status: "requested",
+    };
+
+    let { data, error } = await supabase
       .from("jobs")
       .insert({
-        consumer_id: consumerId || null,
-        provider_id: booking.providerId,
-        provider_name: booking.providerName,
-        skill: booking.skill,
-        description: booking.description,
-        location: booking.location,
-        urgency: booking.urgency,
-        rate: booking.rate,
-        status: "requested",
+        ...baseInsert,
+        latitude: booking.latitude ?? null,
+        longitude: booking.longitude ?? null,
+        location_accuracy: booking.locationAccuracy ?? null,
       })
       .select("*")
       .single();
 
+    if (error) {
+      const retry = await supabase.from("jobs").insert(baseInsert).select("*").single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (!error && data) {
       const b = rowToBooking(data);
-      // Keep local copy in sync for this browser
       const list = fromLocal();
       list.unshift(b);
       saveLocal(list);
