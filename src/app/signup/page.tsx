@@ -13,13 +13,9 @@ function SignupForm() {
   const roleParam = searchParams.get("role") || "consumer";
 
   const initialRole =
-    roleParam === "provider"
-      ? "provider"
-      : roleParam === "professional"
-        ? "professional"
-        : roleParam === "seller"
-          ? "seller"
-          : "consumer";
+    ["provider", "professional", "seller", "agent"].includes(roleParam || "")
+      ? roleParam!
+      : "consumer";
   const [role, setRole] = useState(initialRole);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -105,17 +101,28 @@ function SignupForm() {
 
         <h1 className="text-2xl font-extrabold mb-1">Create your account</h1>
         <p className="text-[#B9C3C9] text-sm mb-6">
-          Join as a {role === "provider" ? "Provider" : role === "professional" ? "Professional" : role === "seller" ? "Seller" : "Consumer"}
+          Join as a {
+            (
+              {
+                consumer: "Consumer",
+                provider: "Provider",
+                professional: "Professional",
+                seller: "Seller",
+                agent: "Agent",
+              } as Record<string, string>
+            )[role] || "User"
+          }
         </p>
 
         {/* Role toggle */}
         <div className="flex gap-1.5 p-1 rounded-full bg-black/35 border border-white/10 mb-6">
           {(
             [
-              { id: "consumer", label: "🙋 Buyer" },
-              { id: "provider", label: "🛠️ Trade" },
-              { id: "professional", label: "⚖️ Pro" },
-              { id: "seller", label: "🏪 Shop" },
+              { id: "consumer", label: "🙋" },
+              { id: "provider", label: "🛠️" },
+              { id: "professional", label: "⚖️" },
+              { id: "seller", label: "🏪" },
+              { id: "agent", label: "🤝" },
             ] as const
           ).map((r) => (
             <button

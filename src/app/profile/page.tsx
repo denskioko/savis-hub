@@ -64,14 +64,14 @@ export default function ProfilePage() {
   }
 
   const role = profile?.role || "consumer";
-  const homeHref =
-    role === "provider"
-      ? "/provider"
-      : role === "professional"
-        ? "/professional"
-        : role === "seller"
-          ? "/seller"
-          : "/consumer";
+  const homeMap: Record<string, string> = {
+      provider: "/provider",
+      professional: "/professional",
+      seller: "/seller",
+      agent: "/agent",
+      consumer: "/consumer",
+    };
+  const homeHref = homeMap[role] || "/consumer";
 
   return (
     <main className="min-h-screen pb-28">

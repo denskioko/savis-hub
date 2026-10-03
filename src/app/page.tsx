@@ -27,6 +27,12 @@ const roles = [
     title: "Seller",
     desc: "Wholesale & retail shops: goods near you",
   },
+  {
+    href: "/signup?role=agent",
+    icon: "🤝",
+    title: "Agent",
+    desc: "Earn by referring clients and providers",
+  },
 ];
 
 export default function HomePage() {
