@@ -8,7 +8,7 @@ import AccountMenu from "@/components/AccountMenu";
 import LangToggle from "@/components/LangToggle";
 import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 import { distanceKm, getSavedLocation, requestCurrentLocation, type UserLocation } from "@/lib/location";
-import { getBookings, syncBookings, type Booking } from "@/lib/bookings";
+import { syncConsumerBookings, type Booking } from "@/lib/bookings";
 import SavisMap, { type SavisMapProvider } from "@/components/SavisMap";
 import { getOrCreateConversation, listConversations, sendMessage, type Conversation } from "@/lib/messaging";
 
@@ -183,7 +183,7 @@ export default function ConsumerPage() {
   }, [loading, userLocation, activeCategory, radius]);
 
   useEffect(() => {
-    if (!loading) void syncBookings().then(setBookings);
+    if (!loading) void syncConsumerBookings().then(setBookings);
   }, [loading]);
 
   useEffect(() => {
