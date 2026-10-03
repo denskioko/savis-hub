@@ -59,9 +59,10 @@ export async function getOrCreateConversation(providerId: string, jobId?: string
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const existing = await supabase.from("conversations").select("*")
-    .eq("consumer_id", user.id).eq("provider_id", providerId)
-    .is("job_id", jobId || null).maybeSingle();
+  let existingQuery = supabase.from("conversations").select("*")
+    .eq("consumer_id", user.id).eq("provider_id", providerId);
+  existingQuery = jobId ? existingQuery.eq("job_id", jobId) : existingQuery.is("job_id", null);
+  const existing = await existingQuery.maybeSingle();
 
   if (existing.data) return rowConversation(existing.data);
 
