@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:providers": "node scripts/seed-providers.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -14,7 +15,8 @@
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "compressorjs": "^1.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
