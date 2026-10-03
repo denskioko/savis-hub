@@ -158,7 +158,7 @@ export default function ConsumerPage() {
         distance_km: location && row.latitude != null && row.longitude != null
           ? distanceKm(location, { latitude: Number(row.latitude), longitude: Number(row.longitude) })
           : 0,
-      })).filter((row) => !categoryArg || String(row.service_category || "").toLowerCase() === categoryArg.toLowerCase());
+      })).filter((row) => (!categoryArg || String(row.service_category || "").toLowerCase() === categoryArg.toLowerCase()) && (!location || Number(row.distance_km) <= radius));
 
       setProviders(rows.map(providerFromRow).sort((a, b) => a.km - b.km));
       setRealProviders(true);
