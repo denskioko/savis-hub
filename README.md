@@ -269,7 +269,7 @@ Current quote acceptance creates a **held ledger record** for protection.
 
 The repository now contains a server-side STK Push flow and callback endpoint. The callback updates the payment ledger only after Safaricom reports the transaction result. The consumer payment page is `/consumer/payments`.
 
-Required server variables are listed above. Start in `sandbox`; switch to `production` only after Safaricom Go Live credentials and a public HTTPS callback are configured. Safaricom documents OAuth authentication, asynchronous callbacks and sandbox-to-production onboarding. cite not available in repository README
+Required server variables are listed above. Start in `sandbox`; switch to `production` only after Safaricom Go Live credentials and a public HTTPS callback are configured.
 
 ### M-Pesa is not yet live
 
