@@ -240,3 +240,11 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Added explicit activation/exit audit events and automatic expiry handling.
 - Business Control Center now activates and exits the delegated session instead of merely preparing a database record.
 - This is an app-level delegated session, not a fake Supabase auth identity; destructive/nuclear controls remain separate.
+
+
+## Developer Operational Control Center — October 2026
+- Added developer-only audited operational RPCs for jobs, payment-ledger recovery, support messaging and marketplace visibility.
+- Added `/dev-console-9f3k/operations` with Overview, Bookings & Jobs, Payments, Messaging and Marketplace sections.
+- Job actions respect the SAVIS transition graph and record developer audit events.
+- Payment changes are recovery controls only; they do not activate live Safaricom configuration.
+- Wired Bookings & Payments, Messaging and Marketplace from the main Developer Control Plane.
