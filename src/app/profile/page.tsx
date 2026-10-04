@@ -12,7 +12,8 @@ import { getBalance, getTransactions, topUp } from "@/lib/wallet";
 type Profile = {
   full_name: string | null;
   role: string | null;
-  email: string | null;\n  avatar_url?: string | null;\n  avatar_url?: string | null;\n  bio?: string | null;\n  location_name?: string | null;
+  email: string | null;
+  avatar_url?: string | null;\n  avatar_url?: string | null;\n  bio?: string | null;\n  location_name?: string | null;
 };
 
 export default function ProfilePage() {
