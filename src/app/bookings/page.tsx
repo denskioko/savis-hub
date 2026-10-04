@@ -46,6 +46,36 @@ const STATUS: Record<
       "text-[#ff8a8d] bg-[rgba(255,138,141,0.12)] border-[rgba(255,138,141,0.4)]",
     hint: "This provider declined. Try another nearby.",
   },
+  quote_pending: {
+    label: "Quote received",
+    className: "text-[#F5C451] bg-[#F5C451]/10 border-[#F5C451]/30",
+    hint: "Review the provider quote below. Accept it to lock the job.",
+  },
+  accepted: {
+    label: "Accepted · Protected",
+    className: "text-[#34D399] bg-[#34D399]/10 border-[#34D399]/30",
+    hint: "The quote is accepted and the job is protected in the SAVIS ledger.",
+  },
+  en_route: {
+    label: "Provider en route",
+    className: "text-[#60A5FA] bg-[#60A5FA]/10 border-[#60A5FA]/30",
+    hint: "Your provider is on the way.",
+  },
+  in_progress: {
+    label: "In progress",
+    className: "text-[#34D399] bg-[#34D399]/10 border-[#34D399]/30",
+    hint: "Work is currently in progress.",
+  },
+  rescheduled: {
+    label: "Rescheduled",
+    className: "text-[#F5C451] bg-[#F5C451]/10 border-[#F5C451]/30",
+    hint: "The job has a new proposed schedule.",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className: "text-[#ff8a8d] bg-[#ff8a8d]/10 border-[#ff8a8d]/30",
+    hint: "This job was cancelled.",
+  },
   completed: {
     label: "Completed",
     className: "text-[#B9C3C9] bg-white/5 border-white/15",
