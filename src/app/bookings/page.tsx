@@ -14,7 +14,6 @@ import {
 } from "@/lib/bookings";
 import { getReviewForJob, addReview } from "@/lib/reviews";
 import { acceptQuote, listQuotesForJobs, type Quote } from "@/lib/quotes";
-import { acceptQuote, listQuotesForJobs, type Quote } from "@/lib/quotes";
 import LangToggle from "@/components/LangToggle";
 import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 
@@ -33,12 +32,6 @@ const STATUS: Record<
     className:
       "text-[#F5C451] bg-[rgba(245,196,81,0.12)] border-[rgba(245,196,81,0.4)]",
     hint: "Your request was sent. The provider will respond soon.",
-  },
-  accepted: {
-    label: "Accepted · In progress",
-    className:
-      "text-[#34D399] bg-[rgba(52,211,153,0.12)] border-[rgba(52,211,153,0.4)]",
-    hint: "Provider accepted. Work is underway.",
   },
   declined: {
     label: "Declined",
@@ -95,8 +88,6 @@ export default function BookingsPage() {
   const [lang, setLangState] = useState<Lang>("en");
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quoteBusy, setQuoteBusy] = useState<string | null>(null);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [quoteBusy, setQuoteBusy] = useState<string | null>(null);
 
   useEffect(() => {
     setLangState(getLang());
@@ -127,7 +118,6 @@ export default function BookingsPage() {
       }
       await syncBookings();
       const list = getBookings();
-      setQuotes(await listQuotesForJobs(list.map((booking) => booking.id)));
       const quoteList = await listQuotesForJobs(list.map((booking) => booking.id));
       setQuotes(quoteList);
       setBookings(list);
@@ -148,18 +138,6 @@ export default function BookingsPage() {
       window.removeEventListener("storage", onUpdate);
     };
   }, [router]);
-
-  async function handleAcceptQuote(quoteId: string) {
-    setQuoteBusy(quoteId);
-    const result = await acceptQuote(quoteId);
-    if (result.ok) {
-      await syncBookings();
-      const list = getBookings();
-      setBookings(list);
-      setQuotes(await listQuotesForJobs(list.map((booking) => booking.id)));
-    }
-    setQuoteBusy(null);
-  }
 
   async function handleAcceptQuote(quoteId: string) {
     setQuoteBusy(quoteId);
