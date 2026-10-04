@@ -159,3 +159,15 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Added `compressorjs` and `src/lib/image.ts` for client-side image compression targeting <=200 KB.
 - Consumer Jobs now has an explicit `consumer_id = auth.uid()` query path rather than relying only on client-side filtering.
 - Consumer provider discovery/profile cards now use database-backed avatars; provider detail loads relational services.
+
+
+## Public browse + conversion hardening (October 2026)
+- Public homepage no longer forces signup for search, categories, or provider discovery.
+- Added logged-out provider search using `supabase/public-discovery.sql` with privacy-safe security-definer RPCs.
+- Provider profiles can be viewed publicly; login is requested only when a user starts a quote/booking action.
+- Added accessible viewport behavior by removing maximumScale/userScalable restrictions.
+- Added 3-step How SAVIS Works section, useful sponsored CTA, footer links, and public About/Support/Terms/Privacy pages.
+- Signup now asks for Kenya phone number, password confirmation, password-strength hints, and Terms/Privacy consent.
+- Added explicit indexable robots policy and sitemap.
+- Fallback demo providers remain only as a graceful fallback until the 50-account seed and production provider data are populated.
+- Required Supabase order for this branch: `schema.sql` → `final-dream.sql` → `dynamic-marketplace.sql` → `public-discovery.sql`.
