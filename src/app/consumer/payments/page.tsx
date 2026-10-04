@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState} from "react"; import Link from "next/link"; import {createClient} from "@/lib/supabase/client"; import {normalizeKenyanPhone} from "@/lib/mpesa";
+import {useEffect,useState} from "react"; import Link from "next/link"; import {createClient} from "@/lib/supabase/client"; import {normalizeKenyanPhone} from "@/lib/mpesa-phone";
 type Job={id:string;status:string;quoted_amount:number|null}; type Payment={id:string;amount:number;status:string;mpesa_receipt:string|null;result_desc:string|null};
 export default function ConsumerPaymentsPage(){
  const [jobs,setJobs]=useState<Job[]>([]),[payments,setPayments]=useState<Payment[]>([]),[phone,setPhone]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
