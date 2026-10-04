@@ -1,100 +1,34 @@
 "use client";
-
-import { useEffect } from "react";
+import { useEffect,useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 
-const categories = [
-  ["🔧", "Plumbing"],
-  ["⚡", "Electrical"],
-  ["🧹", "Cleaning"],
-  ["🪚", "Carpentry"],
-  ["🧵", "Tailoring"],
-  ["🎨", "Painting"],
-];
+type Provider={id:string;name:string;skill:string;area:string;km:number;rating:number;reviews:number;rate:number;verified:boolean;avatarUrl?:string;bio?:string;icon:string};
+const CATS=[["🔧","Plumbing"],["⚡","Electrical"],["🧹","Cleaning"],["🪚","Carpentry"],["🧵","Tailoring"],["🎨","Painting"],["🧱","Masonry"],["🛠️","Mechanics"]];
+const DEMO:Provider[]=[
+{id:"1",name:"James Otieno",skill:"Plumbing",area:"Westlands",km:1.2,rating:4.9,reviews:87,rate:1500,verified:true,icon:"🔧",bio:"Leaks, installations and tank work."},
+{id:"2",name:"Grace Wanjiku",skill:"Tailoring",area:"Parklands",km:.8,rating:5,reviews:63,rate:800,verified:true,icon:"✂️",bio:"Custom dresses, alterations and uniforms."},
+{id:"3",name:"Brian Mutua",skill:"Electrical",area:"Ruaka",km:3.1,rating:4.8,reviews:54,rate:1800,verified:true,icon:"⚡",bio:"Safe wiring and fault finding."},
+{id:"4",name:"Amina Hassan",skill:"Cleaning",area:"Eastleigh",km:1.9,rating:4.6,reviews:31,rate:1200,verified:true,icon:"🧹",bio:"Deep cleaning and regular home cleaning."}];
+const icon=(s:string)=>CATS.find(c=>c[1]===s)?.[0]||"🛠️";
+const mapRow=(r:Record<string,unknown>):Provider=>({id:String(r.id),name:String(r.full_name||"SAVIS provider"),skill:String(r.service_category||"General help"),area:String(r.location_name||"Nearby"),km:Number(r.distance_km)||0,rating:Number(r.rating)||0,reviews:Number(r.review_count)||0,rate:Number(r.hourly_rate)||0,verified:Boolean(r.verified)||String(r.verification_status)==="verified",avatarUrl:r.avatar_url?String(r.avatar_url):undefined,bio:r.bio?String(r.bio):undefined,icon:icon(String(r.service_category||""))});
 
-const providers = [
-  { icon: "🔧", name: "James Otieno", skill: "Plumbing", area: "Westlands", rating: "4.9", km: "1.2" },
-  { icon: "✂️", name: "Grace Wanjiku", skill: "Tailoring", area: "Parklands", rating: "5.0", km: "0.8" },
-  { icon: "⚡", name: "Brian Mutua", skill: "Electrical", area: "Ruaka", rating: "4.8", km: "3.1" },
-];
-
-export default function HomePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      if (data.session) router.replace("/consumer");
-    };
-    void checkSession();
-  }, [router]);
-
-  return (
-    <main className="min-h-screen pb-10">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(34,43,49,0.88)] px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <Link href="/" aria-label="SAVIS home"><Logo /></Link>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-[#B9C3C9]">Log in</Link>
-            <Link href="/signup?role=consumer" className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-4 py-2 text-sm font-bold text-white">Get started</Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-lg px-4 pt-5">
-        <section className="mb-5 rounded-[24px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-5 shadow-xl">
-          <div className="mb-4 flex items-center justify-between">
-            <span className="rounded-full border border-[#F5C451]/30 bg-[#F5C451]/10 px-3 py-1 text-[0.65rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Trusted local help</span>
-            <span className="text-xs text-[#B9C3C9]">Kenya</span>
-          </div>
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight">Find trusted help near you.</h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#B9C3C9]">Discover local providers, professionals and shops — then connect, book and manage your service in one place.</p>
-
-          <div className="mt-5 flex gap-2 rounded-full bg-white p-1.5 shadow-xl">
-            <input className="min-w-0 flex-1 rounded-full px-4 py-3 text-[0.95rem] text-[#222B31] outline-none" placeholder="What do you need help with?" />
-            <Link href="/signup?role=consumer" className="whitespace-nowrap rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-5 py-3 text-sm font-bold text-white">Search</Link>
-          </div>
-          <div className="mt-3 flex items-center gap-2 px-1 text-sm text-[#B9C3C9]"><span>📍</span><span>Nairobi</span><span className="text-[#55666E]">•</span><span>Use your location after signing in</span></div>
-        </section>
-
-        <section className="mb-5 overflow-hidden rounded-[20px] border border-[rgba(245,196,81,0.28)] bg-gradient-to-br from-[rgba(108,1,2,0.92)] to-[rgba(34,43,49,0.92)] p-5">
-          <div className="mb-2 flex items-center justify-between"><span className="rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-[0.65rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Sponsored</span><span className="text-xs text-[#B9C3C9]">Local business</span></div>
-          <h2 className="text-lg font-extrabold">Reach more customers with SAVIS</h2>
-          <p className="mt-1 text-sm leading-relaxed text-[#e6d9da]">Promote a trusted local service or shop to people searching nearby.</p>
-        </section>
-
-        <section className="mb-6">
-          <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-extrabold">Categories</h2><span className="text-xs text-[#B9C3C9]">Popular services</span></div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {categories.map(([icon, name]) => (
-              <Link key={name} href={"/signup?role=consumer"} className="flex min-w-[82px] shrink-0 flex-col items-center gap-1 rounded-2xl border border-white/10 bg-[rgba(34,43,49,0.72)] px-3 py-2.5 text-xs font-bold text-[#B9C3C9]">
-                <span className="text-lg">{icon}</span><span>{name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="mb-6 overflow-hidden rounded-[20px] border border-white/10 bg-[rgba(34,43,49,0.72)]">
-          <div className="flex items-center justify-between px-4 pt-4"><div><h2 className="text-lg font-extrabold">People near you</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">Example SAVIS providers</p></div><Link href="/signup?role=consumer" className="text-xs font-bold text-[#F5C451]">See all →</Link></div>
-          <div className="space-y-3 p-4">
-            {providers.map((p) => (
-              <div key={p.name} className="rounded-[18px] border border-white/10 bg-black/10 p-3.5">
-                <div className="flex gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#6C0102] to-[#C7080C] text-xl">{p.icon}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className="font-bold">{p.name}</span><span className="text-xs font-bold text-[#34D399]">Verified</span></div><p className="text-xs text-[#B9C3C9]">{p.skill} · {p.km} km · {p.area}</p><p className="mt-1 text-sm font-bold">★ {p.rating}</p></div></div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)] p-5 text-center">
-          <h2 className="text-xl font-extrabold">Ready to find help?</h2>
-          <p className="mt-1 text-sm text-[#B9C3C9]">Create your SAVIS account and start discovering trusted people nearby.</p>
-          <Link href="/signup?role=consumer" className="mt-4 inline-flex rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-6 py-3 text-sm font-bold text-white">Create my SAVIS account</Link>
-        </section>
-      </div>
-    </main>
-  );
+export default function HomePage(){
+ const router=useRouter(),[q,setQ]=useState(""),[cat,setCat]=useState(""),[items,setItems]=useState(DEMO),[loading,setLoading]=useState(true),[live,setLive]=useState(false),[location,setLocation]=useState("Nairobi"),[coords,setCoords]=useState({latitude:-1.286389,longitude:36.817223});
+ useEffect(()=>{const s=createClient();void s.auth.getSession().then(({data})=>{if(data.session)router.replace("/consumer")});if("geolocation"in navigator)navigator.geolocation.getCurrentPosition(p=>{setCoords({latitude:p.coords.latitude,longitude:p.coords.longitude});setLocation("Your location")},()=>undefined,{timeout:5000,maximumAge:300000})},[router]);
+ useEffect(()=>{let stop=false;async function load(){setLoading(true);const s=createClient();const {data,error}=await s.rpc("search_public_providers",{p_lat:coords.latitude,p_lng:coords.longitude,p_radius_km:25,p_category:cat||null,p_query:q.trim()||null,p_limit:24});if(stop)return;if(!error&&data?.length){setItems((data as Record<string,unknown>[]).map(mapRow));setLive(true)}else{const x=q.toLowerCase();setItems(DEMO.filter(p=>(!cat||p.skill===cat)&&(!x||`${p.name} ${p.skill} ${p.area} ${p.bio}`.toLowerCase().includes(x))));setLive(false)}setLoading(false)}void load();return()=>{stop=true}},[coords,cat,q]);
+ const search=(e:React.FormEvent)=>{e.preventDefault();document.getElementById("providers")?.scrollIntoView({behavior:"smooth"})};
+ return <main className="min-h-screen">
+  <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(34,43,49,.9)] px-4 py-3 backdrop-blur-md"><div className="mx-auto flex max-w-5xl items-center justify-between gap-3"><Link href="/" aria-label="SAVIS home"><Logo/></Link><nav aria-label="Primary" className="hidden gap-5 text-sm font-semibold text-[#B9C3C9] md:flex"><a href="#how" className="hover:text-white">How it works</a><a href="#providers" className="hover:text-white">Browse providers</a><Link href="/signup?role=provider">For providers</Link></nav><div className="flex gap-2"><Link href="/login" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-[#B9C3C9]">Log in</Link><Link href="/signup?role=consumer" className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-4 py-2 text-sm font-bold text-white">Get started</Link></div></div></header>
+  <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+   <section className="rounded-[28px] border border-white/10 bg-[rgba(34,43,49,.78)] p-5 shadow-2xl sm:p-8"><div className="flex flex-wrap justify-between gap-2"><span className="rounded-full border border-[#F5C451]/30 bg-[#F5C451]/10 px-3 py-1 text-[.65rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Trusted local help</span><span className="text-xs text-[#B9C3C9]">📍 {location} · Browse first</span></div><h1 className="mt-5 max-w-3xl text-3xl font-extrabold leading-tight sm:text-5xl">Find trusted help near you — before you create an account.</h1><p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#B9C3C9] sm:text-base">Search providers, compare ratings and prices, and explore profiles. Sign up only when you want to contact or book.</p><form onSubmit={search} role="search" aria-label="Find local help" className="mt-6 flex flex-col gap-2 rounded-3xl bg-white p-2 sm:flex-row"><label htmlFor="search" className="sr-only">What do you need help with?</label><input id="search" value={q} onChange={e=>setQ(e.target.value)} className="min-w-0 flex-1 rounded-2xl px-4 py-3 text-[#222B31] outline-none" placeholder="Try plumber, tailor, cleaning…"/><button className="rounded-2xl bg-gradient-to-br from-[#E22227] to-[#C7080C] px-6 py-3 text-sm font-bold text-white">Search providers</button></form><p className="mt-3 text-xs text-[#B9C3C9]">No signup. No payment. Just explore.</p></section>
+   <section className="mt-6"><div className="mb-3 flex justify-between"><h2 className="text-lg font-extrabold">Browse by category</h2>{cat&&<button type="button" onClick={()=>setCat("")} className="text-xs font-bold text-[#F5C451]">Clear filter</button>}</div><div className="grid grid-cols-4 gap-2 sm:grid-cols-8">{CATS.map(([i,n])=><button key={n} type="button" onClick={()=>{setCat(n);setQ("");document.getElementById("providers")?.scrollIntoView({behavior:"smooth"})}} aria-pressed={cat===n} className={`rounded-2xl border px-2 py-3 text-center text-xs font-bold ${cat===n?"border-[#F5C451]/50 bg-[#F5C451]/10":"border-white/10 bg-[rgba(34,43,49,.72)] text-[#B9C3C9]"}`}><span className="block text-lg" aria-hidden="true">{i}</span>{n}</button>)}</div></section>
+   <section id="providers" className="mt-8 scroll-mt-24"><div className="mb-3 flex items-end justify-between"><div><h2 className="text-2xl font-extrabold">{cat?cat+" providers":"People near you"}</h2><p className="text-sm text-[#B9C3C9]">{live?"Live SAVIS provider listings":"Preview listings while the marketplace is being populated"}</p></div><span className="text-xs text-[#B9C3C9]">{items.length} result{items.length===1?"":"s"}</span></div>{loading?<div className="grid gap-3 sm:grid-cols-2"><div className="h-36 animate-pulse rounded-3xl bg-white/10"/><div className="h-36 animate-pulse rounded-3xl bg-white/10"/></div>:items.length?<div className="grid gap-3 sm:grid-cols-2">{items.slice(0,8).map(p=><Link key={p.id} href={`/consumer/provider/${p.id}`} className="rounded-3xl border border-white/10 bg-[rgba(34,43,49,.72)] p-4 hover:border-white/20" aria-label={`View ${p.name}, ${p.skill}`}><div className="flex gap-3"><div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#6C0102] to-[#C7080C] text-2xl">{p.avatarUrl?<img src={p.avatarUrl} alt="" className="h-full w-full object-cover"/>:<span aria-hidden="true">{p.icon}</span>}{p.verified&&<span title="Verified provider" className="absolute bottom-0 right-0 rounded-full border-2 border-[#222B31] bg-[#34D399] px-1 text-[9px] font-black text-[#06281c]">✓</span>}</div><div className="min-w-0 flex-1"><div className="flex justify-between gap-2"><h3 className="font-extrabold">{p.name}</h3><span className="text-xs font-bold text-[#F5C451]">View →</span></div><p className="text-sm text-[#B9C3C9]">{p.skill} · {p.km.toFixed(1)} km · {p.area}</p><p className="mt-1 text-sm font-bold">★ {p.rating?p.rating.toFixed(1):"New"} <span className="font-normal text-[#B9C3C9]">{p.reviews?`(${p.reviews})`:""}</span></p>{p.rate>0&&<p className="mt-2 text-sm font-bold">From KSh {p.rate.toLocaleString()}</p>}</div></div>{p.bio&&<p className="mt-3 text-sm text-[#B9C3C9]">{p.bio}</p>}</Link>)}</div>:<div className="rounded-3xl border border-white/10 bg-[rgba(34,43,49,.72)] p-8 text-center"><div className="text-3xl" aria-hidden="true">🔎</div><h3 className="mt-2 font-extrabold">No providers found</h3><p className="mt-1 text-sm text-[#B9C3C9]">Try another service or clear the filters.</p><button type="button" onClick={()=>{setQ("");setCat("")}} className="mt-4 rounded-full border border-white/15 px-4 py-2 text-sm font-bold">Show everyone</button></div>}</section>
+   <section id="how" className="mt-10 scroll-mt-24"><h2 className="text-2xl font-extrabold">How SAVIS works</h2><div className="mt-4 grid gap-3 sm:grid-cols-3">{[["01","Search for what you need","Browse services and providers without signing up."],["02","Choose a trusted provider","Compare ratings, prices, availability and verification."],["03","Book & pay securely","Create an account when you are ready to contact or book."]].map(([n,t,b])=><div key={n} className="rounded-3xl border border-white/10 bg-[rgba(34,43,49,.72)] p-5"><b className="text-[#F5C451]">{n}</b><h3 className="mt-2 font-extrabold">{t}</h3><p className="mt-1 text-sm text-[#B9C3C9]">{b}</p></div>)}</div></section>
+   <section className="mt-8 rounded-3xl border border-[#F5C451]/30 bg-gradient-to-br from-[rgba(108,1,2,.92)] to-[rgba(34,43,49,.92)] p-5"><span className="text-xs font-extrabold uppercase tracking-wider text-[#F5C451]">Sponsored · For local businesses</span><h2 className="mt-2 text-lg font-extrabold">Reach customers already searching</h2><p className="mt-1 text-sm text-[#e6d9da]">List your service or shop on SAVIS.</p><Link href="/signup?role=provider" className="mt-4 inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-[#6C0102]">List your business →</Link></section>
+   <footer className="mt-12 border-t border-white/10 py-8"><div className="grid gap-6 sm:grid-cols-3"><div><Logo size="sm"/><p className="mt-2 text-sm text-[#B9C3C9]">Trusted local help, goods and professionals in Kenya.</p></div><div><h2 className="text-sm font-extrabold">Explore</h2><div className="mt-2 flex flex-col gap-2 text-sm text-[#B9C3C9]"><a href="#how">How it works</a><Link href="/about">About SAVIS</Link><Link href="/signup?role=provider">For providers</Link></div></div><div><h2 className="text-sm font-extrabold">Support & legal</h2><div className="mt-2 flex flex-col gap-2 text-sm text-[#B9C3C9]"><Link href="/support">Support</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link></div></div></div><p className="mt-8 text-xs text-[#B9C3C9]">© {new Date().getFullYear()} SAVIS.</p></footer>
+  </div>
+ </main>;
 }
