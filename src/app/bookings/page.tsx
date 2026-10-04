@@ -13,6 +13,7 @@ import {
   type BookingStatus,
 } from "@/lib/bookings";
 import { getReviewForJob, addReview } from "@/lib/reviews";
+import { acceptQuote, listQuotesForJobs, type Quote } from "@/lib/quotes";
 import LangToggle from "@/components/LangToggle";
 import { t, getLang, setLang, type Lang } from "@/lib/i18n";
 
@@ -32,17 +33,41 @@ const STATUS: Record<
       "text-[#F5C451] bg-[rgba(245,196,81,0.12)] border-[rgba(245,196,81,0.4)]",
     hint: "Your request was sent. The provider will respond soon.",
   },
-  accepted: {
-    label: "Accepted · In progress",
-    className:
-      "text-[#34D399] bg-[rgba(52,211,153,0.12)] border-[rgba(52,211,153,0.4)]",
-    hint: "Provider accepted. Work is underway.",
-  },
   declined: {
     label: "Declined",
     className:
       "text-[#ff8a8d] bg-[rgba(255,138,141,0.12)] border-[rgba(255,138,141,0.4)]",
     hint: "This provider declined. Try another nearby.",
+  },
+  quote_pending: {
+    label: "Quote received",
+    className: "text-[#F5C451] bg-[#F5C451]/10 border-[#F5C451]/30",
+    hint: "Review the provider quote below. Accept it to lock the job.",
+  },
+  accepted: {
+    label: "Accepted · Protected",
+    className: "text-[#34D399] bg-[#34D399]/10 border-[#34D399]/30",
+    hint: "The quote is accepted and the job is protected in the SAVIS ledger.",
+  },
+  en_route: {
+    label: "Provider en route",
+    className: "text-[#60A5FA] bg-[#60A5FA]/10 border-[#60A5FA]/30",
+    hint: "Your provider is on the way.",
+  },
+  in_progress: {
+    label: "In progress",
+    className: "text-[#34D399] bg-[#34D399]/10 border-[#34D399]/30",
+    hint: "Work is currently in progress.",
+  },
+  rescheduled: {
+    label: "Rescheduled",
+    className: "text-[#F5C451] bg-[#F5C451]/10 border-[#F5C451]/30",
+    hint: "The job has a new proposed schedule.",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className: "text-[#ff8a8d] bg-[#ff8a8d]/10 border-[#ff8a8d]/30",
+    hint: "This job was cancelled.",
   },
   completed: {
     label: "Completed",
@@ -61,6 +86,8 @@ export default function BookingsPage() {
   const [saving, setSaving] = useState(false);
   const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
   const [lang, setLangState] = useState<Lang>("en");
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quoteBusy, setQuoteBusy] = useState<string | null>(null);
 
   useEffect(() => {
     setLangState(getLang());
@@ -91,6 +118,8 @@ export default function BookingsPage() {
       }
       await syncBookings();
       const list = getBookings();
+      const quoteList = await listQuotesForJobs(list.map((booking) => booking.id));
+      setQuotes(quoteList);
       setBookings(list);
       refreshReviews(list);
       setLoading(false);
@@ -109,6 +138,18 @@ export default function BookingsPage() {
       window.removeEventListener("storage", onUpdate);
     };
   }, [router]);
+
+  async function handleAcceptQuote(quoteId: string) {
+    setQuoteBusy(quoteId);
+    const result = await acceptQuote(quoteId);
+    if (result.ok) {
+      await syncBookings();
+      const list = getBookings();
+      setBookings(list);
+      setQuotes(await listQuotesForJobs(list.map((booking) => booking.id)));
+    }
+    setQuoteBusy(null);
+  }
 
   async function submitReview() {
     if (!ratingJobId) return;
@@ -197,6 +238,22 @@ export default function BookingsPage() {
                   </div>
                   <p className="text-[0.7rem] text-[#55666E] mb-2">{st.hint}</p>
 
+                  {quotes.filter((quote) => quote.jobId === b.id && quote.status === "pending").map((quote) => (
+                    <div key={quote.id} className="mb-3 rounded-2xl border border-[#F5C451]/30 bg-[#F5C451]/[0.06] p-3">
+                      <div className="flex items-center justify-between gap-2"><span className="text-[0.62rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Provider quote</span><span className="text-[0.62rem] text-[#B9C3C9]">Expires {quote.expiresAt ? new Date(quote.expiresAt).toLocaleString() : "soon"}</span></div>
+                      <div className="mt-2 flex items-end justify-between gap-3"><div><b className="text-xl text-white">KSh {quote.amount.toLocaleString()}</b><p className="mt-1 text-xs text-[#B9C3C9]">{quote.message || "Provider sent a quote for this job."}</p></div><span className="rounded-full bg-[#34D399]/10 px-2.5 py-1 text-[0.62rem] font-bold text-[#34D399]">Protected</span></div>
+                      <button type="button" disabled={quoteBusy === quote.id} onClick={() => handleAcceptQuote(quote.id)} className="mt-3 w-full rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] py-2.5 text-xs font-bold">{quoteBusy === quote.id ? "Locking job…" : "Accept & Lock Job"}</button>
+                      <p className="mt-2 text-[0.62rem] leading-relaxed text-[#7F8C93]">Accepting records the quote, moves the job to Accepted and marks the payment as held in the SAVIS ledger. Live M-Pesa charging still requires Daraja credentials/webhooks.</p>
+                    </div>
+                  ))}
+                  {quotes.filter((quote) => quote.jobId === b.id && quote.status === "pending").map((quote) => (
+                    <div key={quote.id} className="mb-3 rounded-2xl border border-[#F5C451]/30 bg-[#F5C451]/[0.06] p-3">
+                      <div className="flex items-center justify-between gap-2"><span className="text-[0.62rem] font-extrabold uppercase tracking-wider text-[#F5C451]">Provider quote</span><span className="text-[0.62rem] text-[#B9C3C9]">Expires {quote.expiresAt ? new Date(quote.expiresAt).toLocaleString() : "soon"}</span></div>
+                      <div className="mt-2 flex items-end justify-between gap-3"><div><b className="text-xl text-white">KSh {quote.amount.toLocaleString()}</b><p className="mt-1 text-xs text-[#B9C3C9]">{quote.message || "Provider sent a quote for this job."}</p></div><span className="rounded-full bg-[#34D399]/10 px-2.5 py-1 text-[0.62rem] font-bold text-[#34D399]">Protected</span></div>
+                      <button type="button" disabled={quoteBusy === quote.id} onClick={() => handleAcceptQuote(quote.id)} className="mt-3 w-full rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] py-2.5 text-xs font-bold">{quoteBusy === quote.id ? "Locking job…" : "Accept & Lock Job"}</button>
+                      <p className="mt-2 text-[0.62rem] leading-relaxed text-[#7F8C93]">Accepting records the quote, moves the job to Accepted and marks the payment as held in the SAVIS ledger. Live M-Pesa charging still requires Daraja credentials/webhooks.</p>
+                    </div>
+                  ))}
                   {b.status === "completed" && !hasReview && (
                     <button
                       onClick={() => {

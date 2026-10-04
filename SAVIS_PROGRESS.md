@@ -151,6 +151,14 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Nearby-provider RPC no longer returns email.
 
 
+## Phase 4 — Structured quotes & job protection foundation
+- Added provider structured quote composer with amount, inclusions and 24-hour expiry.
+- Added consumer quote cards with an explicit “Accept & Lock Job” action.
+- Added atomic `accept_quote(...)` RPC to accept the quote, move the job to Accepted, record `quoted_amount`, close competing pending quotes, and create a held payment-ledger entry.
+- Added `src/lib/quotes.ts` for quote creation, retrieval and acceptance.
+- Added protected/quote-pending job status presentation.
+- Live M-Pesa charging/reconciliation still requires production Daraja credentials and webhook handling.
+
 ## Phase 2 — Live local-services map
 - Upgraded the consumer map to an interactive Leaflet/OpenStreetMap experience with multi-provider pins.
 - Added category-specific marker colors for major SAVIS service types.
