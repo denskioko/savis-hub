@@ -16,6 +16,7 @@ import {
   type Booking,
 } from "@/lib/bookings";
 import { releaseForJob, refundForJob } from "@/lib/wallet";
+import { createQuote } from "@/lib/quotes";
 
 type Profile = {
   full_name: string | null;
@@ -90,6 +91,10 @@ export default function ProviderPage() {
   const [availability, setAvailability] = useState<AvailabilityDay[]>(DEFAULT_AVAILABILITY);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [quoteJob, setQuoteJob] = useState<Booking | null>(null);
+  const [quoteAmount, setQuoteAmount] = useState(0);
+  const [quoteMessage, setQuoteMessage] = useState("");
+  const [quoteBusy, setQuoteBusy] = useState(false);
 
   useEffect(() => setLangState(getLang()), []);
   function switchLang(l: Lang) {
@@ -205,6 +210,22 @@ export default function ProviderPage() {
     await updateBookingStatus(id, "accepted");
     refreshJobs();
     showToast(lang === "sw" ? "Kazi imekubaliwa" : "Job accepted");
+  }
+
+  async function submitQuote() {
+    if (!quoteJob || quoteAmount < 0) return;
+    setQuoteBusy(true);
+    const quote = await createQuote(quoteJob.id, quoteAmount, quoteMessage, new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+    if (quote) {
+      await updateBookingStatus(quoteJob.id, "quote_pending", "Provider sent a SAVIS quote.");
+      refreshJobs();
+      setQuoteJob(null);
+      setQuoteMessage("");
+      showToast("Quote sent · customer can accept and lock the job");
+    } else {
+      showToast("Quote could not be sent. Run the latest Supabase migration.");
+    }
+    setQuoteBusy(false);
   }
 
   async function declineJob(id: string) {
@@ -401,7 +422,7 @@ export default function ProviderPage() {
                   <div key={j.id} className="p-3 rounded-2xl bg-black/25 border border-white/8">
                     <div className="flex justify-between gap-2"><strong className="text-sm">{j.description}</strong><span className="text-[0.62rem] text-[#F5C451]">{jobId(j.id)}</span></div>
                     <p className="text-xs text-[#B9C3C9] mt-1">{j.location} · {URGENCY[j.urgency]?.[lang] || j.urgency} · KSh {j.rate.toLocaleString()}</p>
-                    <div className="flex gap-2 mt-3"><button onClick={() => acceptJob(j.id)} className="flex-1 py-2 rounded-full text-xs font-bold bg-[#E22227]">Accept</button><button onClick={() => showToast("Custom quote flow coming next")} className="flex-1 py-2 rounded-full text-xs font-bold border border-white/15">Custom quote</button><button onClick={() => declineJob(j.id)} className="px-3 rounded-full text-xs font-bold border border-white/15">Decline</button></div>
+                    <div className="flex gap-2 mt-3"><button onClick={() => acceptJob(j.id)} className="flex-1 py-2 rounded-full text-xs font-bold bg-[#E22227]">Accept</button><button onClick={() => { setQuoteJob(j); setQuoteAmount(j.rate); setQuoteMessage(""); }} className="flex-1 py-2 rounded-full text-xs font-bold border border-white/15">Custom quote</button><button onClick={() => declineJob(j.id)} className="px-3 rounded-full text-xs font-bold border border-white/15">Decline</button></div>
                   </div>
                 ))}</div>}
               </section>
@@ -476,6 +497,22 @@ export default function ProviderPage() {
 
         <p className="text-center text-xs text-[#55666E] mt-7">SAVIS Provider Hub · Some management tools are currently prototype UI.</p>
       </div>
+
+
+      {quoteJob && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/70 px-4 pb-5">
+          <div className="w-full max-w-md rounded-[24px] border border-white/15 bg-[#0d1d30] p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#F5C451]">Structured quote</p><h2 className="mt-1 text-xl font-extrabold">Send a protected job quote</h2><p className="mt-1 text-xs text-[#7F8C93]">{jobId(quoteJob.id)} · {quoteJob.description}</p></div>
+              <button type="button" onClick={() => setQuoteJob(null)} className="text-[#B9C3C9]">✕</button>
+            </div>
+            <label className="block mt-5"><span className="block mb-1.5 text-xs font-bold text-[#B9C3C9]">Quote amount (KSh)</span><input type="number" min={0} value={quoteAmount} onChange={(e) => setQuoteAmount(Number(e.target.value) || 0)} className="w-full rounded-2xl border border-white/15 bg-black/25 px-4 py-3.5 text-white outline-none focus:border-[#F5C451]" /></label>
+            <label className="block mt-3"><span className="block mb-1.5 text-xs font-bold text-[#B9C3C9]">What is included?</span><textarea rows={3} value={quoteMessage} onChange={(e) => setQuoteMessage(e.target.value)} placeholder="Labour, materials, call-out fee, expected timing…" className="w-full resize-none rounded-2xl border border-white/15 bg-black/25 px-4 py-3.5 text-sm text-white outline-none focus:border-[#F5C451]" /></label>
+            <div className="mt-3 rounded-2xl border border-[#34D399]/20 bg-[#34D399]/5 p-3"><b className="text-xs text-[#34D399]">SAVIS protection</b><p className="mt-1 text-[0.68rem] text-[#B9C3C9]">Customer sees this as a structured quote. If accepted, the job moves to Accepted and a held payment ledger entry is created for the job.</p></div>
+            <div className="mt-4 grid grid-cols-2 gap-2"><button type="button" onClick={() => setQuoteJob(null)} className="rounded-full border border-white/15 py-3 text-xs font-bold">Cancel</button><button type="button" disabled={quoteBusy} onClick={submitQuote} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] py-3 text-xs font-bold">{quoteBusy ? "Sending…" : "Send quote"}</button></div>
+          </div>
+        </div>
+      )}
 
       {toast && <div className="fixed left-1/2 -translate-x-1/2 bottom-8 z-50 px-4 py-2.5 rounded-xl bg-[#222B31] border border-white/15 text-sm shadow-xl">{toast}</div>}
     </main>
