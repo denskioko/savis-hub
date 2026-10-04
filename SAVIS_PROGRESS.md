@@ -151,6 +151,15 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Nearby-provider RPC no longer returns email.
 
 
+## Phase 2 — Live local-services map
+- Upgraded the consumer map to an interactive Leaflet/OpenStreetMap experience with multi-provider pins.
+- Added category-specific marker colors for major SAVIS service types.
+- Added animated user-location radar plus a radius boundary.
+- Added selected-provider marker emphasis and synchronized quick-card selection.
+- Added mobile-friendly full-screen map controls with touch/scroll zoom and recenter behavior.
+- Kept radius/category/search filtering upstream so the map and list stay synchronized.
+- Added safe HTML escaping for provider names/categories before they enter Leaflet tooltips.
+
 ## Phase 1 — Dynamic marketplace data
 - Added `supabase/dynamic-marketplace.sql`: provider avatars, verification status, service radius and relational `provider_services`.
 - Nearby-provider discovery is privacy-safe and now returns avatar/verification metadata without email.

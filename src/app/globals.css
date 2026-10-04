@@ -53,3 +53,11 @@ textarea {
 .leaflet-control-zoom a{background:#222b31!important;color:#fff!important;border-color:rgba(255,255,255,.12)!important}
 .leaflet-control-attribution{background:rgba(17,23,28,.78)!important;color:#b9c3c9!important}
 .leaflet-control-attribution a{color:#f5c451!important}
+
+
+/* SAVIS live-map layer */
+.savis-user-radar{position:absolute;left:2px;top:2px;width:38px;height:38px;border:2px solid rgba(52,211,153,.42);border-radius:999px;animation:savis-radar 2.2s ease-out infinite}
+.savis-provider-core{background:var(--savis-pin,#e22227)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--savis-pin,#e22227) 28%,transparent),0 6px 18px rgba(0,0,0,.35)!important}
+.savis-provider-core.is-selected{transform:scale(1.28);box-shadow:0 0 0 4px rgba(245,196,81,.78),0 0 24px rgba(245,196,81,.55)!important}
+.savis-provider-pulse{border-color:color-mix(in srgb,var(--savis-pin,#e22227) 72%,transparent)!important}
+@keyframes savis-radar{0%{transform:scale(.45);opacity:.9}75%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}
