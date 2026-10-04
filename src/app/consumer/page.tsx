@@ -302,7 +302,7 @@ export default function ConsumerPage() {
           <section className="mb-6 overflow-hidden rounded-[22px] border border-white/10 bg-[rgba(34,43,49,0.72)]">
             <div className="flex items-center justify-between gap-3 px-4 pt-4"><div><h2 className="font-extrabold text-lg">Live nearby</h2><p className="mt-0.5 text-xs text-[#B9C3C9]">{realProviders ? `Providers within ${radius} km` : "Alpha sample providers"}</p></div><button type="button" onClick={() => setMapMode(true)} className="text-xs font-bold text-[#F5C451]">Open live map →</button></div>
             <div className="relative mt-4 overflow-hidden border-y border-white/10">
-              <SavisMap center={mapCenter} providers={filtered} onSelect={setSelectedMapProvider} />
+              <SavisMap center={mapCenter} providers={filtered} radiusKm={radius} selectedProviderId={selectedMapProvider?.id || null} onSelect={setSelectedMapProvider} />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#11171c]/35 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-[#11171c]/85 px-3 py-1.5 text-[0.65rem] font-bold backdrop-blur">● {filtered.length} nearby results</div>
             </div>
@@ -384,7 +384,7 @@ export default function ConsumerPage() {
       )}
       {mapMode && (
         <div className="fixed inset-0 z-[70] bg-[#11171c]">
-          <SavisMap center={mapCenter} providers={filtered} fullScreen onSelect={setSelectedMapProvider} />
+          <SavisMap center={mapCenter} providers={filtered} fullScreen radiusKm={radius} selectedProviderId={selectedMapProvider?.id || null} onSelect={setSelectedMapProvider} />
           <div className="absolute left-4 right-4 top-4 z-[90] flex items-center justify-between gap-2"><div className="rounded-full border border-white/10 bg-[#11171c]/90 px-4 py-2 text-sm font-bold backdrop-blur">SAVIS · Live map</div><button type="button" onClick={() => setMapMode(false)} className="rounded-full border border-white/10 bg-[#11171c]/90 px-4 py-2 text-sm font-bold backdrop-blur">Close ✕</button></div>
           <div className="absolute bottom-6 left-4 right-4 z-[90] rounded-[22px] border border-white/10 bg-[#11171c]/92 p-3 backdrop-blur"><div className="flex items-center justify-between"><div><b>{filtered.length} providers in view</b><p className="text-xs text-[#B9C3C9]">Radius: {radius} km · tap a pin for quick details</p></div><button type="button" onClick={enableLocation} className="rounded-full bg-[#F5C451] px-3 py-2 text-xs font-black text-[#141B1F]">Recenter</button></div>{selectedMapProvider && <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3"><div><b className="text-sm">{selectedMapProvider.name}</b><p className="text-xs text-[#B9C3C9]">{selectedMapProvider.skill} · ★ {selectedMapProvider.rating ? selectedMapProvider.rating.toFixed(1) : "New"} · {selectedMapProvider.km.toFixed(1)} km</p></div><Link href={`/consumer/provider/${selectedMapProvider.id}`} className="rounded-full bg-gradient-to-br from-[#E22227] to-[#C7080C] px-3 py-2 text-xs font-bold">View</Link></div>}</div>
         </div>
