@@ -1,4 +1,28 @@
--- SAVIS M-Pesa/Daraja production foundation
+-- SAVIS M-Pesa/Daraja payment foundation
+-- Self-contained: creates the payment ledger if final-dream.sql was not applied.
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid,
+  order_id uuid,
+  payer_id uuid references auth.users(id) on delete set null,
+  payee_id text,
+  amount integer not null check(amount>=0),
+  platform_fee integer not null default 0 check(platform_fee>=0),
+  method text not null default 'mpesa' check(method in ('mpesa','card','wallet','cash')),
+  status text not null default 'pending' check(status in ('pending','authorized','held','released','refunded','failed','cancelled')),
+  provider_reference text,
+  checkout_request_id text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  merchant_request_id text,
+  mpesa_receipt text,
+  result_code integer,
+  result_desc text,
+  callback_received_at timestamptz,
+  phone_number text,
+  failure_reason text,
+  check(job_id is not null or order_id is not null)
+);
 alter table public.payments add column if not exists merchant_request_id text;
 alter table public.payments add column if not exists mpesa_receipt text;
 alter table public.payments add column if not exists result_code integer;
@@ -6,17 +30,16 @@ alter table public.payments add column if not exists result_desc text;
 alter table public.payments add column if not exists callback_received_at timestamptz;
 alter table public.payments add column if not exists phone_number text;
 alter table public.payments add column if not exists failure_reason text;
+create index if not exists payments_payer_idx on public.payments(payer_id,created_at desc);
 create unique index if not exists payments_checkout_request_unique on public.payments(checkout_request_id) where checkout_request_id is not null;
 create unique index if not exists payments_merchant_request_unique on public.payments(merchant_request_id) where merchant_request_id is not null;
 create index if not exists payments_mpesa_receipt_idx on public.payments(mpesa_receipt) where mpesa_receipt is not null;
+alter table public.payments enable row level security;
+drop policy if exists "payment participants read" on public.payments;
+create policy "payment participants read" on public.payments for select to authenticated using(payer_id=auth.uid() or payee_id=auth.uid()::text);
 drop policy if exists "payer creates pending payment" on public.payments;
-create policy "payer creates pending payment" on public.payments for insert to authenticated with check (payer_id=auth.uid() and status='pending');
-drop policy if exists "payment payer participant read" on public.payments;
-create policy "payment payer participant read" on public.payments for select to authenticated using (
- payer_id=auth.uid() or payee_id=auth.uid()::text
- or exists(select 1 from public.jobs j where j.id=job_id and (j.consumer_id=auth.uid() or j.provider_id=auth.uid()::text))
- or exists(select 1 from public.product_orders o where o.id=order_id and (o.buyer_id=auth.uid() or o.seller_id=auth.uid()))
-);
+create policy "payer creates pending payment" on public.payments for insert to authenticated with check(payer_id=auth.uid() and status='pending');
+
 create or replace function public.mark_mpesa_callback(p_checkout_request_id text,p_merchant_request_id text,p_result_code integer,p_result_desc text,p_receipt text default null,p_callback_at timestamptz default now())
 returns public.payments language plpgsql security definer set search_path=public as $$
 declare v_payment public.payments;
