@@ -1,4 +1,6 @@
 -- Logged-out provider discovery. Run after schema.sql and dynamic-marketplace.sql.
+alter table public.profiles add column if not exists phone text;
+
 drop function if exists public.search_public_providers(double precision,double precision,double precision,text,text,integer);
 create or replace function public.search_public_providers(
   p_lat double precision,p_lng double precision,p_radius_km double precision default 25,
