@@ -76,3 +76,47 @@ textarea {
 .savis-auto-track:hover,.savis-auto-track:focus-within{animation-play-state:paused}
 .savis-contact-row{display:flex;align-items:center;gap:.85rem;border:1px solid rgba(215,217,220,.11);background:linear-gradient(180deg,#111316,#090a0c);border-radius:18px;padding:.75rem .85rem;transition:.18s}
 .savis-contact-row:hover{border-color:rgba(245,196,81,.3);transform:translateY(-1px)}
+
+/* Consumer column refinement: premium, rigid-platinum surfaces */
+.savis-discovery-grid > button,
+.savis-inbox-tabs > button,
+.savis-profile-menu > a,
+.savis-job-link,
+.savis-job-card,
+.savis-inbox-panel,
+.savis-profile-hero {
+  border-color: rgba(215,217,220,.14) !important;
+  background: linear-gradient(180deg,#15171a 0%,#090a0c 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 14px 34px rgba(0,0,0,.24);
+}
+.savis-discovery-grid > button:hover,
+.savis-inbox-tabs > button:hover,
+.savis-profile-menu > a:hover,
+.savis-job-link:hover {
+  border-color: rgba(245,196,81,.38) !important;
+  transform: translateY(-1px);
+}
+.savis-discovery-grid > button > div:first-child {
+  background: linear-gradient(135deg,#1a1c1f 0%,#2a080a 100%) !important;
+}
+.savis-inbox-tabs > button {
+  min-height: 92px;
+  border-radius: 18px !important;
+}
+.savis-profile-hero {
+  border-top: 1px solid rgba(245,196,81,.24) !important;
+}
+.savis-profile-menu > a {
+  min-height: 68px;
+  border-radius: 17px !important;
+}
+.savis-job-card {
+  border-radius: 18px !important;
+}
+.savis-job-card .bg-white\/10 {
+  background: rgba(255,255,255,.08) !important;
+}
+@media (max-width: 420px) {
+  .savis-inbox-tabs { grid-template-columns: 1fr; }
+  .savis-inbox-tabs > button { min-height: 64px; }
+}
