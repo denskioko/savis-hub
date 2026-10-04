@@ -82,40 +82,38 @@ export default function ProviderDetailPage() {
     async function load() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-
-      setBalance(getBalance());
+      if (user) setBalance(getBalance());
 
       if (!SAMPLE[id]) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, full_name, role, avatar_url, latitude, longitude, location_name, service_category, hourly_rate, rating, review_count, availability, verified, verification_status, bio")
-          .eq("id", id)
-          .maybeSingle();
-
-        if (data) {
+        const { data } = await supabase.rpc("get_public_provider", { p_provider_id: id });
+        if (data?.[0]) {
+          const row = data[0] as Record<string, unknown>;
           const current = getSavedLocation();
-          const row = {
-            ...data,
-            distance_km: current && data.latitude != null && data.longitude != null
-              ? distanceKm(current, { latitude: Number(data.latitude), longitude: Number(data.longitude) })
+          setProvider(rowToProvider({
+            ...row,
+            distance_km: current && row.latitude != null && row.longitude != null
+              ? distanceKm(current, { latitude: Number(row.latitude), longitude: Number(row.longitude) })
               : 0,
-          };
-          setProvider(rowToProvider(row));
-          const serviceResult = await supabase.from("provider_services")
-            .select("id,name,description,starting_price,unit")
-            .eq("provider_id", id).eq("is_active", true)
-            .order("starting_price", { ascending: true });
-          if (!serviceResult.error && serviceResult.data) setServices(serviceResult.data);
+          }));
         }
       }
+
+      const serviceResult = await supabase.rpc("get_public_provider_services", { p_provider_id: id });
+      if (!serviceResult.error && serviceResult.data) setServices(serviceResult.data);
       setLoading(false);
     }
     load();
   }, [id, router]);
+
+  async function handleRequestClick() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(`/consumer/provider/${id}`)}`);
+      return;
+    }
+    setShowForm(true);
+  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -218,8 +216,8 @@ export default function ProviderDetailPage() {
 
         {!showForm ? (
           <div className="space-y-3">
-            <Button full onClick={() => setShowForm(true)}>Request a quote</Button>
-            <Button variant="outline" full onClick={() => setShowForm(true)}>Book now</Button>
+            <Button full onClick={handleRequestClick}>Request a quote</Button>
+            <Button variant="outline" full onClick={handleRequestClick}>Book now</Button>
           </div>
         ) : (
           <form onSubmit={handleSend} className="space-y-4">
