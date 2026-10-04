@@ -19,7 +19,10 @@ function SignupForm() {
   const [role, setRole] = useState(initialRole);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -35,6 +38,9 @@ function SignupForm() {
       return;
     }
 
+    if (password !== confirmPassword) { setError("Passwords do not match."); setLoading(false); return; }
+    if (!acceptedTerms) { setError("Please agree to the Terms and Privacy Policy."); setLoading(false); return; }
+
     const supabase = createClient();
 
     const { data, error: signError } = await supabase.auth.signUp({
@@ -43,6 +49,7 @@ function SignupForm() {
       options: {
         data: {
           full_name: fullName.trim(),
+          phone: phone.trim(),
           role,
         },
       },
@@ -177,6 +184,11 @@ function SignupForm() {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-[#B9C3C9] mb-1.5">PHONE (KENYA)</label>
+            <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-3.5 rounded-2xl bg-black/35 border border-white/15 text-white outline-none focus:border-[#E22227] focus:ring-2 focus:ring-[#E22227]/30" placeholder="+254 7XX XXX XXX" />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-[#B9C3C9] mb-1.5">
               PASSWORD
             </label>
@@ -187,8 +199,24 @@ function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3.5 rounded-2xl bg-black/35 border border-white/15 text-white outline-none focus:border-[#E22227] focus:ring-2 focus:ring-[#E22227]/30"
               placeholder="8+ characters with a number"
+              aria-describedby="password-help"
             />
+            <div id="password-help" className="mt-2 flex flex-wrap gap-2 text-xs text-[#B9C3C9]">
+              <span className={password.length >= 8 ? "text-[#34D399]" : ""}>● 8+ chars</span>
+              <span className={/\d/.test(password) ? "text-[#34D399]" : ""}>● Number</span>
+              <span className={/[A-Z]/.test(password) ? "text-[#34D399]" : ""}>● Uppercase</span>
+            </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#B9C3C9] mb-1.5">CONFIRM PASSWORD</label>
+            <input required type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3.5 rounded-2xl bg-black/35 border border-white/15 text-white outline-none focus:border-[#E22227] focus:ring-2 focus:ring-[#E22227]/30" placeholder="Repeat your password" />
+          </div>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-[#B9C3C9]">
+            <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 h-4 w-4" />
+            <span>I agree to the <Link href="/terms" className="font-bold text-[#F5C451]">Terms</Link> and <Link href="/privacy" className="font-bold text-[#F5C451]">Privacy Policy</Link>.</span>
+          </label>
 
           {error && (
             <p className="text-[#ff8a8d] text-sm font-semibold">{error}</p>
