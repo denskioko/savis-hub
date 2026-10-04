@@ -5,7 +5,9 @@
   --red-2: #c7080c;
   --maroon: #6c0102;
   --wine: #440101;
-  --slate: #222b31;
+  --slate: #0b0c0e;
+  --platinum: #d7d9dc;
+  --platinum-dark: #1b1d20;
   --steel: #55666e;
   --gold: #f5c451;
   --muted: #b9c3c9;
@@ -17,12 +19,12 @@ body {
   min-height: 100vh;
   color: #ffffff;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #1a0505;
+  background-color: #050607;
   background-image:
     radial-gradient(60% 40% at 0% 8%, rgba(226, 34, 39, 0.95), transparent 70%),
     radial-gradient(50% 35% at 100% 30%, rgba(34, 43, 49, 0.95), transparent 70%),
     radial-gradient(60% 40% at 0% 62%, rgba(199, 8, 12, 0.85), transparent 70%),
-    linear-gradient(180deg, #440101, #1b1214 55%, #222b31);
+    linear-gradient(180deg, #4a0103 0%, #120a0b 46%, #050607 100%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
@@ -64,3 +66,13 @@ textarea {
 
 @keyframes savis-pop{0%,100%{transform:scale(.92);filter:brightness(.95)}50%{transform:scale(1.08);filter:brightness(1.18)}}
 @keyframes savis-load{0%{transform:translateX(-120%)}50%{transform:translateX(90%)}100%{transform:translateX(220%)}}
+
+.savis-platinum{background:linear-gradient(180deg,#16181b,#090a0c);border-color:rgba(215,217,220,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 45px rgba(0,0,0,.28)}
+.savis-horizontal-scroll{display:flex;gap:.75rem;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
+.savis-horizontal-scroll::-webkit-scrollbar{display:none}
+.savis-horizontal-card{flex:0 0 min(78%,300px);scroll-snap-align:start}
+@keyframes savis-auto-slide{0%,12%{transform:translateX(0)}20%,32%{transform:translateX(-312px)}40%,52%{transform:translateX(-624px)}60%,72%{transform:translateX(-936px)}80%,92%{transform:translateX(-1248px)}100%{transform:translateX(0)}}
+.savis-auto-track{display:flex;width:max-content;gap:.75rem;animation:savis-auto-slide 22s ease-in-out infinite}
+.savis-auto-track:hover,.savis-auto-track:focus-within{animation-play-state:paused}
+.savis-contact-row{display:flex;align-items:center;gap:.85rem;border:1px solid rgba(215,217,220,.11);background:linear-gradient(180deg,#111316,#090a0c);border-radius:18px;padding:.75rem .85rem;transition:.18s}
+.savis-contact-row:hover{border-color:rgba(245,196,81,.3);transform:translateY(-1px)}

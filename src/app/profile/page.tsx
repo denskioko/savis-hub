@@ -13,6 +13,7 @@ type Profile = {
   full_name: string | null;
   role: string | null;
   email: string | null;
+  avatar_url?: string | null;\n  avatar_url?: string | null;\n  bio?: string | null;\n  location_name?: string | null;
 };
 
 export default function ProfilePage() {
@@ -36,7 +37,7 @@ export default function ProfilePage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, role, email")
+        .select("full_name, role, email, avatar_url, bio, location_name")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -81,20 +82,20 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen pb-28">
-      <header className="sticky top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[rgba(34,43,49,0.8)] backdrop-blur-md">
-        <Logo size="sm" />
+      <header className="sticky top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-white/10 savis-platinum backdrop-blur-md">
+        <Link href={homeHref} className="font-black tracking-tight">SAVIS</Link>
         <AccountMenu name={profile?.full_name || "Account"} role={profile?.role || "consumer"} homeHref={homeHref} />
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-6">
         <div className="flex items-center gap-4 mb-6">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-extrabold text-white"
+            className="w-16 h-16 overflow-hidden rounded-full flex items-center justify-center text-2xl font-extrabold text-white"
             style={{
               background: "linear-gradient(135deg, #E22227, #C7080C)",
             }}
           >
-            {(profile?.full_name || "U").charAt(0).toUpperCase()}
+            {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile?.full_name || "U").charAt(0).toUpperCase()}
           </div>
           <div>
             <h1 className="text-xl font-extrabold">
@@ -138,7 +139,7 @@ export default function ProfilePage() {
         <div className="space-y-3 mb-8">
           <Link
             href={homeHref}
-            className="flex items-center justify-between p-4 rounded-[18px] border border-white/10 bg-[rgba(34,43,49,0.72)]"
+            className="flex items-center justify-between p-4 rounded-[18px] border border-white/10 savis-platinum"
           >
             <span className="font-bold text-sm">Go to my home</span>
             <span className="text-[#B9C3C9]">→</span>
