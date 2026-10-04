@@ -253,3 +253,42 @@ create policy "job event participant insert" on public.job_status_events for ins
     where j.id = job_id and (j.consumer_id = auth.uid() or j.provider_id = auth.uid()::text)
   )
 );
+
+
+-- Structured quote acceptance: atomically accept the quote, move the job to accepted,
+-- and create a held payment ledger row for the consumer's protection.
+create or replace function public.accept_quote(p_quote_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare q public.quotes; j public.jobs; payment_id uuid;
+begin
+  select * into q from public.quotes where id=p_quote_id for update;
+  if not found then raise exception 'Quote not found'; end if;
+  select * into j from public.jobs where id=q.job_id for update;
+  if not found then raise exception 'Job not found'; end if;
+  if j.consumer_id <> auth.uid() then raise exception 'Not authorized'; end if;
+  if q.status <> 'pending' then raise exception 'Quote is no longer pending'; end if;
+  if q.expires_at is not null and q.expires_at < now() then
+    update public.quotes set status='expired' where id=q.id;
+    raise exception 'Quote has expired';
+  end if;
+  if j.status not in ('requested','quote_pending') then raise exception 'Job cannot accept this quote'; end if;
+
+  update public.quotes set status='accepted', updated_at=now() where id=q.id;
+  update public.quotes set status='declined', updated_at=now()
+    where job_id=q.job_id and id<>q.id and status='pending';
+  update public.jobs set status='accepted', quoted_amount=q.amount where id=j.id;
+
+  insert into public.payments(job_id,payer_id,payee_id,amount,platform_fee,method,status)
+    values(j.id,auth.uid(),q.provider_id,q.amount,0,'mpesa','held')
+    returning id into payment_id;
+
+  insert into public.job_status_events(job_id,actor_id,status,note)
+    values(j.id,auth.uid(),'accepted','Quote accepted and funds marked as held for job protection.');
+
+  return j.id;
+end $$;
+grant execute on function public.accept_quote(uuid) to authenticated;
