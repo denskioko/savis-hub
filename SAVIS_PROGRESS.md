@@ -213,3 +213,12 @@ When continuing this project, do NOT rebuild SAVIS from the old uploaded `index.
 - Added explicit indexable robots policy and sitemap.
 - Fallback demo providers remain only as a graceful fallback until the 50-account seed and production provider data are populated.
 - Required Supabase order for this branch: `schema.sql` → `final-dream.sql` → `dynamic-marketplace.sql` → `public-discovery.sql`.
+
+
+## M-Pesa/Daraja foundation — October 2026
+- Added `supabase/mpesa-daraja.sql` with Daraja callback fields, idempotency indexes and a service-role-only callback RPC.
+- Added server-side `src/lib/mpesa.ts` for OAuth token generation and STK Push initiation.
+- Added `/api/payments/mpesa/stk` with authenticated consumer/job/amount checks before initiating an STK Push.
+- Added `/api/payments/mpesa/callback` for Safaricom asynchronous results.
+- Added consumer payment center at `/consumer/payments`.
+- Payment ledger remains **not live** until real Daraja credentials, shortcode/passkey and a public HTTPS callback are configured.

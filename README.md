@@ -265,6 +265,12 @@ The backend contains:
 
 Current quote acceptance creates a **held ledger record** for protection.
 
+### M-Pesa Daraja foundation
+
+The repository now contains a server-side STK Push flow and callback endpoint. The callback updates the payment ledger only after Safaricom reports the transaction result. The consumer payment page is `/consumer/payments`.
+
+Required server variables are listed above. Start in `sandbox`; switch to `production` only after Safaricom Go Live credentials and a public HTTPS callback are configured.
+
 ### M-Pesa is not yet live
 
 Production M-Pesa requires:
@@ -292,6 +298,9 @@ Run migrations in this order from the repository's `supabase/` directory:
 3. `dynamic-marketplace.sql`
 4. `public-discovery.sql`
 5. `provider-kyc.sql`
+6. `realtime-messaging.sql`
+7. `provider-review.sql`
+8. `mpesa-daraja.sql`
 
 Use:
 
@@ -322,6 +331,15 @@ Create `.env.local` in the repository root:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Server-only Daraja variables (never expose to the browser)
+MPESA_ENVIRONMENT=sandbox
+MPESA_CONSUMER_KEY=your-daraja-consumer-key
+MPESA_CONSUMER_SECRET=your-daraja-consumer-secret
+MPESA_SHORTCODE=your-shortcode
+MPESA_PASSKEY=your-stk-passkey
+MPESA_CALLBACK_URL=https://your-domain.example/api/payments/mpesa/callback
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 For the provider seed script, server-only variables are required:
