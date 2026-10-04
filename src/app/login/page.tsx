@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/Logo";
 import Button from "@/components/Button";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -49,7 +50,9 @@ export default function LoginPage() {
       agent: "/agent",
       consumer: "/consumer",
     };
-    const dest = destMap[role] || "/consumer";
+    const next = searchParams.get("next");
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+    const dest = safeNext || destMap[role] || "/consumer";
     router.push(dest);
     router.refresh();
   }
@@ -114,4 +117,9 @@ export default function LoginPage() {
       </div>
     </main>
   );
+}
+
+
+export default function LoginPage() {
+  return <Suspense fallback={<main className="min-h-screen flex items-center justify-center"><p className="text-[#B9C3C9]">Loading…</p></main>}><LoginForm /></Suspense>;
 }
