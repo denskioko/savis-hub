@@ -12,7 +12,7 @@ import { getBalance, getTransactions, topUp } from "@/lib/wallet";
 type Profile = {
   full_name: string | null;
   role: string | null;
-  email: string | null;\n  avatar_url?: string | null;\n  bio?: string | null;\n  location_name?: string | null;
+  email: string | null;\n  avatar_url?: string | null;\n  avatar_url?: string | null;\n  bio?: string | null;\n  location_name?: string | null;
 };
 
 export default function ProfilePage() {
@@ -89,12 +89,12 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto px-4 pt-6">
         <div className="flex items-center gap-4 mb-6">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-extrabold text-white"
+            className="w-16 h-16 overflow-hidden rounded-full flex items-center justify-center text-2xl font-extrabold text-white"
             style={{
               background: "linear-gradient(135deg, #E22227, #C7080C)",
             }}
           >
-            {(profile?.full_name || "U").charAt(0).toUpperCase()}
+            {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile?.full_name || "U").charAt(0).toUpperCase()}
           </div>
           <div>
             <h1 className="text-xl font-extrabold">
